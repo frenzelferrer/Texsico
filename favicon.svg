@@ -1,0 +1,31 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="56" y1="40" x2="464" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C8CFF" stop-opacity="0.92"/>
+      <stop offset="0.55" stop-color="#5A6BFF" stop-opacity="0.88"/>
+      <stop offset="1" stop-color="#2D3A8D" stop-opacity="0.94"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="124" y1="86" x2="372" y2="382" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.03"/>
+    </linearGradient>
+    <linearGradient id="glyph" x1="186" y1="132" x2="343" y2="378" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EEF3FF"/>
+    </linearGradient>
+    <filter id="softGlow" x="0" y="0" width="512" height="512" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <rect x="40" y="40" width="432" height="432" rx="120" fill="url(#bg)"/>
+  <rect x="40.75" y="40.75" width="430.5" height="430.5" rx="119.25" stroke="#FFFFFF" stroke-opacity="0.24"/>
+  <path d="M116 96C116 76.1177 132.118 60 152 60H360C379.882 60 396 76.1178 396 96V135C396 154.882 379.882 171 360 171H152C132.118 171 116 154.882 116 135V96Z" fill="url(#glass)"/>
+  <path d="M122 146C174 110 247 88 318 91C349 92 374 98 396 108V79C396 57.461 378.539 40 357 40H155C133.461 40 116 57.461 116 79V134C116 138.15 118.155 142.003 122 146Z" fill="#FFFFFF" fill-opacity="0.09"/>
+
+  <g filter="url(#softGlow)">
+    <path d="M157 157C157 139.327 171.327 125 189 125H323C340.673 125 355 139.327 355 157V187C355 204.673 340.673 219 323 219H284V338C284 355.673 269.673 370 252 370H242C224.327 370 210 355.673 210 338V219H189C171.327 219 157 204.673 157 187V157Z" fill="url(#glyph)"/>
+    <path d="M284 333V255L345 255C360.464 255 373 267.536 373 283V313C373 328.464 360.464 341 345 341H322.5L294 368C289.26 372.491 284 369.129 284 362.6V333Z" fill="url(#glyph)"/>
+  </g>
+</svg>

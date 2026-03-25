@@ -1,0 +1,39 @@
+Texsico Refresh Package
+=======================
+
+What changed:
+- Rebranded the app name from Ripple to Texsico
+- Updated auth pages and feed copy to match the new brand
+- Switched the UI toward a cleaner, more minimal glassmorphism style
+- Removed the heavy ripple/circle visual direction in favor of simpler surfaces
+- Added composer draft autosave on the feed
+- Added feed smart filters: All, Photos, Discussed, Quick reads
+- Added feed density modes: Comfort and Compact
+- Added chat conversation search
+- Added chat quick reply chips
+- Updated manifest and favicon assets for Texsico
+- Updated SQL seed branding and database naming to texsico_db
+
+Notes:
+- Import the included SQL file if you want the rebranded sample database setup.
+- Review config/database.php before deployment and replace credentials if needed.
+
+
+Favicon Refresh (March 25):
+- Replaced the full favicon set with a new Texsico icon centered on a T-shaped message glyph.
+- Updated favicon.ico, favicon.svg, favicon-16x16.png, favicon-32x32.png, apple-touch-icon.png, android-chrome-192x192.png, android-chrome-512x512.png, mstile-150x150.png, and preview images.
+
+
+March 25, 2026 refinements:
+- Added a back-to-feed button in the Messages sidebar header for the no-conversation state.
+- Added a second back-to-feed action inside the empty chat panel for faster navigation to the news feed.
+- Improved light mode contrast for muted text, placeholders, pills, hover states, and glass surfaces.
+- Tightened mobile spacing and stacking for feed cards, actions, forms, chat empty state actions, and the bottom navigation.
+- Refined small-screen chat empty-state layout so the new back action stays reachable and readable.
+
+March 25 follow-up mobile polish
+- Compact inline post actions on mobile (like, comment, message)
+- Fixed feed hero chips/prompt chips clipping on narrow screens
+- Reworked mobile composer footer so the Post button and counter fit cleanly
+- Raised and tightened the floating New Post button on mobile
+- Tightened the mobile chat header and reduced crowding in the selected conversation view

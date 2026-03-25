@@ -1,0 +1,105 @@
+<?php
+require_once __DIR__ . '/../models/UserModel.php';
+require_once __DIR__ . '/../models/PostModel.php';
+require_once __DIR__ . '/../models/CommentModel.php';
+
+class ProfileController {
+    private UserModel $userModel;
+    private PostModel $postModel;
+    private CommentModel $commentModel;
+
+    public function __construct() {
+        $this->userModel = new UserModel();
+        $this->postModel = new PostModel();
+        $this->commentModel = new CommentModel();
+    }
+
+    private function requireAuth(): void {
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: index.php?page=login');
+            exit;
+        }
+    }
+
+    public function showProfile(): void {
+        $this->requireAuth();
+        $currentUserId = (int)$_SESSION['user_id'];
+        $profileId = isset($_GET['id']) ? (int)$_GET['id'] : $currentUserId;
+
+        $profileUser = $this->userModel->findById($profileId);
+        if (!$profileUser) {
+            header('Location: index.php?page=feed');
+            exit;
+        }
+
+        $posts = $this->postModel->getPostsByUser($profileId, $currentUserId);
+        $comments = $this->commentModel->getByPostIds(array_column($posts, 'id'));
+
+        require __DIR__ . '/../views/profile/index.php';
+    }
+
+    public function updateProfile(): void {
+        $this->requireAuth();
+        verify_csrf_request();
+
+        if (!app_rate_limit('profile_update_' . (int)$_SESSION['user_id'], 10, 600)) {
+            $_SESSION['error'] = 'Profile updates are happening too quickly. Please try again shortly.';
+            header('Location: index.php?page=profile');
+            exit;
+        }
+
+        $userId = (int)$_SESSION['user_id'];
+        $existingUser = $this->userModel->findById($userId);
+        $fullName = trim($_POST['full_name'] ?? '');
+        $bio = trim($_POST['bio'] ?? '');
+
+        if ($fullName === '' || mb_strlen($fullName) > 80 || mb_strlen($bio) > 300) {
+            $_SESSION['error'] = 'Please keep your profile details within the allowed length.';
+            header('Location: index.php?page=profile');
+            exit;
+        }
+
+        $imageName = null;
+        $coverName = null;
+
+        if (!empty($_FILES['profile_image']['name'])) {
+            $imageName = optimized_image_upload($_FILES['profile_image'], 'avatars', 'avatar_' . $userId, [
+                'max_width' => 512,
+                'max_height' => 512,
+                'quality' => 76,
+                'max_file_size' => 5,
+                'strip_animation' => true,
+            ]);
+        }
+
+        if (!empty($_FILES['cover_photo']['name'])) {
+            $coverName = optimized_image_upload($_FILES['cover_photo'], 'covers', 'cover_' . $userId, [
+                'max_width' => 1600,
+                'max_height' => 900,
+                'quality' => 74,
+                'max_file_size' => 5,
+            ]);
+        }
+
+        $this->userModel->updateProfile($userId, $fullName, $bio, $imageName, $coverName);
+        $_SESSION['full_name'] = $fullName;
+        if ($imageName) {
+            remove_uploaded_asset('avatar', $existingUser['profile_image'] ?? null);
+            $_SESSION['profile_image'] = $imageName;
+        }
+        if ($coverName) {
+            remove_uploaded_asset('cover', $existingUser['cover_photo'] ?? null);
+        }
+
+        header('Location: index.php?page=profile');
+        exit;
+    }
+
+    public function searchUsers(): void {
+        $this->requireAuth();
+        $q = mb_substr(trim($_GET['q'] ?? ''), 0, 100);
+        $userId = (int)$_SESSION['user_id'];
+        $results = $q !== '' ? $this->userModel->searchUsers($q, $userId) : [];
+        require __DIR__ . '/../views/profile/search.php';
+    }
+}
