@@ -1,0 +1,16 @@
+Texsico security and compliance audit (March 26)
+
+Fixed or improved:
+- Removed direct database access from views by moving data-loading into controllers.
+- Added missing comment edit feature to satisfy CRUD requirement for comments.
+- Fixed DOM XSS risk in AJAX post editing by escaping edited content before injecting HTML.
+- Hardened comment delete/update authorization responses.
+- Added PHP security headers (CSP, nosniff, frame protection, referrer policy, permissions policy).
+- Added upload-directory execution block via assets/uploads/.htaccess.
+- Switched database config to secure external credentials pattern with config/database.credentials.example.php.
+- Added DB_DSN support to enable local smoke testing without exposing real production credentials.
+
+Action still required by project owner:
+- Create config/database.credentials.php on the deployment server with your real DB values.
+- Rotate the previous database password if that old ZIP was shared publicly, because the old config/database.php contained live credentials.
+- Keep uploads writable, but never commit real uploaded media to GitHub.

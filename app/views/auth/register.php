@@ -69,11 +69,12 @@ unset($_SESSION['errors'], $_SESSION['old']);
         <?= csrf_input() ?>
         <div class="form-group">
           <label class="form-label">Full Name</label>
-          <input type="text" name="full_name" class="form-control" placeholder="Your full name" value="<?= htmlspecialchars($old['full_name'] ?? '') ?>" required>
+          <input type="text" name="full_name" class="form-control" placeholder="Your full name" value="<?= htmlspecialchars($old['full_name'] ?? '') ?>" maxlength="80" required>
         </div>
         <div class="form-group">
           <label class="form-label">Username</label>
-          <input type="text" name="username" class="form-control" placeholder="Choose a username" value="<?= htmlspecialchars($old['username'] ?? '') ?>" required>
+          <div style="font-size:12px; color:var(--text-dim); margin-bottom:6px;">3 to 20 letters, numbers, or underscores.</div>
+          <input type="text" name="username" class="form-control" placeholder="Choose a username" value="<?= htmlspecialchars($old['username'] ?? '') ?>" maxlength="20" pattern="[A-Za-z0-9_]+" title="Use 3 to 20 letters, numbers, or underscores." required>
         </div>
         <div class="form-group">
           <label class="form-label">Email</label>

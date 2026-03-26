@@ -8,6 +8,47 @@ if (!function_exists('app_boot_optimizations')) {
     }
 }
 
+if (!function_exists('apply_security_headers')) {
+    function apply_security_headers(bool $cacheHtml = false): void {
+        if (headers_sent()) {
+            return;
+        }
+
+        header('X-Content-Type-Options: nosniff');
+        header('X-Frame-Options: SAMEORIGIN');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+        header('Cross-Origin-Resource-Policy: same-origin');
+        header('Cross-Origin-Opener-Policy: same-origin');
+        header('Origin-Agent-Cluster: ?1');
+        header(
+            "Content-Security-Policy: default-src 'self'; " .
+            "base-uri 'self'; frame-ancestors 'self'; object-src 'none'; form-action 'self'; " .
+            "img-src 'self' data: blob: https://cdnjs.cloudflare.com; " .
+            "media-src 'self' data: blob:; connect-src 'self'; " .
+            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " .
+            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; " .
+            "font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com;"
+        );
+
+        if ($cacheHtml) {
+            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+        }
+    }
+}
+
+if (!function_exists('format_chat_time')) {
+    function format_chat_time(string $datetime): string {
+        try {
+            return (new DateTime($datetime))->format('g:i A');
+        } catch (Throwable $e) {
+            return $datetime;
+        }
+    }
+}
+
 if (!function_exists('asset_version')) {
     function asset_version(string $relativePath): string {
         $relativePath = '/' . ltrim($relativePath, '/');

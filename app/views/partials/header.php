@@ -4,11 +4,7 @@ $currentUsername   = $_SESSION['username'] ?? '';
 $currentFullName   = $_SESSION['full_name'] ?? '';
 $currentAvatar     = $_SESSION['profile_image'] ?? 'default.png';
 
-if ($currentUserId) {
-  require_once BASE_PATH . '/app/models/MessageModel.php';
-  $msgModel = new MessageModel();
-  $unreadMsgCount = $msgModel->getUnreadCount($currentUserId);
-}
+$unreadMsgCount = isset($unreadMsgCount) ? (int)$unreadMsgCount : 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">

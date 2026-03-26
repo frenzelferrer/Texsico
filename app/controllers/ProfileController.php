@@ -2,16 +2,19 @@
 require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../models/PostModel.php';
 require_once __DIR__ . '/../models/CommentModel.php';
+require_once __DIR__ . '/../models/MessageModel.php';
 
 class ProfileController {
     private UserModel $userModel;
     private PostModel $postModel;
     private CommentModel $commentModel;
+    private MessageModel $messageModel;
 
     public function __construct() {
         $this->userModel = new UserModel();
         $this->postModel = new PostModel();
         $this->commentModel = new CommentModel();
+        $this->messageModel = new MessageModel();
     }
 
     private function requireAuth(): void {
@@ -34,6 +37,7 @@ class ProfileController {
 
         $posts = $this->postModel->getPostsByUser($profileId, $currentUserId);
         $comments = $this->commentModel->getByPostIds(array_column($posts, 'id'));
+        $unreadMsgCount = $this->messageModel->getUnreadCount($currentUserId);
 
         require __DIR__ . '/../views/profile/index.php';
     }
@@ -70,6 +74,12 @@ class ProfileController {
                 'max_file_size' => 5,
                 'strip_animation' => true,
             ]);
+
+            if ($imageName === null) {
+                $_SESSION['error'] = 'Profile image upload failed. Use JPG, PNG, GIF, or WEBP under 5MB.';
+                header('Location: index.php?page=profile');
+                exit;
+            }
         }
 
         if (!empty($_FILES['cover_photo']['name'])) {
@@ -79,6 +89,12 @@ class ProfileController {
                 'quality' => 74,
                 'max_file_size' => 5,
             ]);
+
+            if ($coverName === null) {
+                $_SESSION['error'] = 'Cover photo upload failed. Use JPG, PNG, GIF, or WEBP under 5MB.';
+                header('Location: index.php?page=profile');
+                exit;
+            }
         }
 
         $this->userModel->updateProfile($userId, $fullName, $bio, $imageName, $coverName);
@@ -100,6 +116,8 @@ class ProfileController {
         $q = mb_substr(trim($_GET['q'] ?? ''), 0, 100);
         $userId = (int)$_SESSION['user_id'];
         $results = $q !== '' ? $this->userModel->searchUsers($q, $userId) : [];
+        $allUsers = $q === '' ? $this->userModel->getAllExcept($userId) : [];
+        $unreadMsgCount = $this->messageModel->getUnreadCount($userId);
         require __DIR__ . '/../views/profile/search.php';
     }
 }

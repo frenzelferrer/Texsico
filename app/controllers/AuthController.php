@@ -116,8 +116,8 @@ private function checkRegisterRateLimit(): void {
         if ($username === '' || $email === '' || $password === '' || $fullName === '') {
             $errors[] = 'All fields are required.';
         }
-        if (mb_strlen($username) < 3 || mb_strlen($username) > 30) {
-            $errors[] = 'Username must be between 3 and 30 characters.';
+        if (mb_strlen($username) < 3 || mb_strlen($username) > 20) {
+            $errors[] = 'Username must be between 3 and 20 characters.';
         }
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
             $errors[] = 'Username can only contain letters, numbers, and underscores.';

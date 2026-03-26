@@ -107,8 +107,8 @@ $chatStateClass = $otherUser ? 'has-chat-selected' : 'show-list';
 }  .chat-back-link:hover { border-color: var(--accent); color: var(--text); }
   .chat-user-link { display: inline-flex; flex-shrink: 0; }
   .chat-user-meta { min-width: 0; }
-  .chat-user-name { font-weight: 700; font-size: 15px; color: var(--text); line-height: 1.2; }
-  .chat-user-username { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .chat-user-name { font-weight: 700; font-size: 15px; color: var(--text); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat-user-username { font-size: 12px; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .chat-header-actions { margin-left: auto; display: flex; gap: 8px; flex-shrink: 0; }
   .chat-profile-label { display: inline; }
   .chat-info-toggle { display: none; width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: var(--text); align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease; }

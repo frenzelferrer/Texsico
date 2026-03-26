@@ -53,20 +53,28 @@ class CommentModel {
     }
 
     public function findById(int $id): ?array {
-        $stmt = $this->db->prepare("SELECT * FROM comments WHERE id = ? LIMIT 1");
+        $stmt = $this->db->prepare(
+            "SELECT c.*, u.username, u.full_name, u.profile_image
+             FROM comments c
+             JOIN users u ON c.user_id = u.id
+             WHERE c.id = ?
+             LIMIT 1"
+        );
         $stmt->execute([$id]);
         return $stmt->fetch() ?: null;
     }
 
     public function update(int $id, int $userId, string $content): bool {
         $stmt = $this->db->prepare(
-            "UPDATE comments SET content=? WHERE id=? AND user_id=?"
+            "UPDATE comments SET content = ? WHERE id = ? AND user_id = ?"
         );
-        return $stmt->execute([$content, $id, $userId]);
+        $stmt->execute([$content, $id, $userId]);
+        return $stmt->rowCount() > 0;
     }
 
     public function delete(int $id, int $userId): bool {
-        $stmt = $this->db->prepare("DELETE FROM comments WHERE id=? AND user_id=?");
-        return $stmt->execute([$id, $userId]);
+        $stmt = $this->db->prepare("DELETE FROM comments WHERE id = ? AND user_id = ?");
+        $stmt->execute([$id, $userId]);
+        return $stmt->rowCount() > 0;
     }
 }

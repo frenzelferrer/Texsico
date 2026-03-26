@@ -67,6 +67,7 @@ class ChatController {
         $allUsers = $this->userModel->getAllExcept($userId, 120);
         $lastMsgId = 0;
         $sharedImages = [];
+        $unreadMsgCount = $this->messageModel->getUnreadCount($userId);
         $chatStats = [
             'total_messages' => 0,
             'total_photos' => 0,
@@ -131,7 +132,7 @@ class ChatController {
             }
             $id = $this->messageModel->sendMedia($userId, $receiverId, 'image', $image);
             $msg = $this->messageModel->getMessageById($id);
-            $time = $msg ? (new DateTime($msg['created_at']))->format('g:i A') : (new DateTime('now'))->format('g:i A');
+            $time = $msg ? format_chat_time((string)$msg['created_at']) : format_chat_time((new DateTime('now'))->format('Y-m-d H:i:s'));
             echo json_encode([
                 'success' => true,
                 'id' => $id,
@@ -151,7 +152,7 @@ class ChatController {
             }
             $id = $this->messageModel->sendMedia($userId, $receiverId, 'voice', $voice, $voiceDuration);
             $msg = $this->messageModel->getMessageById($id);
-            $time = $msg ? (new DateTime($msg['created_at']))->format('g:i A') : (new DateTime('now'))->format('g:i A');
+            $time = $msg ? format_chat_time((string)$msg['created_at']) : format_chat_time((new DateTime('now'))->format('Y-m-d H:i:s'));
             echo json_encode([
                 'success' => true,
                 'id' => $id,
@@ -171,7 +172,7 @@ class ChatController {
 
         $id = $this->messageModel->send($userId, $receiverId, $message);
         $msg = $this->messageModel->getMessageById($id);
-        $time = $msg ? (new DateTime($msg['created_at']))->format('g:i A') : (new DateTime('now'))->format('g:i A');
+        $time = $msg ? format_chat_time((string)$msg['created_at']) : format_chat_time((new DateTime('now'))->format('Y-m-d H:i:s'));
 
         echo json_encode([
             'success' => true,

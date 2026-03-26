@@ -37,3 +37,17 @@ March 25 follow-up mobile polish
 - Reworked mobile composer footer so the Post button and counter fit cleanly
 - Raised and tightened the floating New Post button on mobile
 - Tightened the mobile chat header and reduced crowding in the selected conversation view
+
+
+March 26 security/compliance pass:
+- moved remaining DB calls out of views into controllers
+- added comment editing to complete comment CRUD
+- fixed AJAX edit-post XSS issue
+- added stronger response security headers
+- blocked script execution in uploads folder
+- externalized DB credentials pattern with example config
+
+March 26, 2026 - Mobile username stability fix
+- Prevented long usernames from stretching mobile/profile layouts by adding truncation and min-width safeguards to profile, sidebar, post, and discovery cards.
+- Reduced username registration limit from 30 to 20 characters and added frontend maxlength/pattern guidance on signup.
+- Added maxlength guidance to profile full name editing for cleaner mobile presentation.

@@ -404,14 +404,29 @@
       border: 2px solid var(--accent);
     }
 
+    .sidebar-profile > div {
+      flex: 1;
+      min-width: 0;
+    }
+
     .sidebar-profile-name {
+      display: block;
       font-weight: 600;
       font-size: 14px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .sidebar-profile-user {
+      display: block;
       color: var(--text-muted);
       font-size: 12px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .main-content {
@@ -752,12 +767,19 @@
       display:flex;
       gap:10px;
       align-items:flex-start;
+      min-width: 0;
       color:var(--text-muted);
       font-size:14px;
       padding: 10px 12px;
       border-radius: 16px;
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.07);
+    }
+    .side-info-item span {
+      flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .profile-cover {
@@ -808,10 +830,12 @@
       flex-wrap: wrap;
     }
 
+    .profile-header > * { min-width: 0; }
     .profile-avatar-wrap { position: relative; }
     .profile-info {
       flex:1;
-      min-width: 280px;
+      width: 100%;
+      min-width: 0;
       display:flex;
       justify-content:space-between;
       gap: 18px;
@@ -823,8 +847,24 @@
       box-shadow: 0 22px 70px rgba(0,0,0,0.24);
     }
 
-    .profile-name { font-family: var(--font-display); font-size: clamp(28px, 4vw, 38px); line-height: 1; letter-spacing: -0.05em; }
-    .profile-username { color: var(--text-muted); margin-top: 6px; }
+    .profile-name {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 4vw, 38px);
+      line-height: 1;
+      letter-spacing: -0.05em;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .profile-username {
+      display: block;
+      color: var(--text-muted);
+      margin-top: 6px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .profile-bio { color: var(--text); margin-top: 14px; max-width: 680px; line-height: 1.7; }
     .profile-stats { display:flex; gap: 24px; margin-top: 18px; flex-wrap:wrap; }
     .profile-stats > div { min-width: 110px; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); }
@@ -1119,13 +1159,18 @@
 
     .post-meta {
       flex: 1;
+      min-width: 0;
     }
 
     .post-author {
+      display: block;
       font-weight: 700;
       font-size: 15px;
       color: var(--text);
       text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .post-author:hover {
@@ -1133,8 +1178,13 @@
     }
 
     .post-username {
+      display: block;
+      max-width: 100%;
       font-size: 13px;
       color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .post-time {
@@ -1379,6 +1429,11 @@
       transition: all 0.2s;
     }
 
+    .user-card > div {
+      flex: 1;
+      min-width: 0;
+    }
+
     .user-card:hover {
       background: rgba(255, 255, 255, 0.06);
     }
@@ -1386,11 +1441,19 @@
     .user-card-name {
       font-weight: 600;
       font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .user-card-username {
+      display: block;
+      max-width: 100%;
       font-size: 12px;
       color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .modal-overlay {
@@ -1490,18 +1553,27 @@
 
     .profile-details {
       flex: 1;
+      min-width: 0;
     }
 
     .profile-name {
       font-family: var(--font-display);
       font-size: 24px;
       font-weight: 800;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .profile-username {
+      display: block;
       color: var(--text-muted);
       font-size: 14px;
       margin-top: 2px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .profile-bio {
@@ -1563,6 +1635,11 @@
       transition: background 0.15s;
     }
 
+    .chat-user-item > div {
+      flex: 1;
+      min-width: 0;
+    }
+
     .chat-user-item:hover {
       background: rgba(255, 255, 255, 0.06);
     }
@@ -1575,6 +1652,9 @@
     .chat-user-name {
       font-weight: 600;
       font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .chat-last-msg {
@@ -1583,7 +1663,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      max-width: 160px;
+      max-width: 100%;
     }
 
     .unread-dot {
@@ -3037,6 +3117,23 @@ html[data-theme="light"] .chat-back-link:hover {
   .profile-posts {
     border-radius: 20px !important;
   }
+  .profile-info,
+  .profile-details,
+  .post-meta,
+  .user-card > div,
+  .sidebar-profile > div {
+    min-width: 0;
+  }
+  .profile-name {
+    font-size: clamp(22px, 7vw, 28px);
+    line-height: 1.05;
+  }
+  .profile-username,
+  .post-username,
+  .user-card-username,
+  .sidebar-profile-user {
+    max-width: 100%;
+  }
   .feed-hero-content,
   .feed-command-row,
   .profile-header,
@@ -3293,4 +3390,33 @@ html[data-theme="light"] .chat-back-link:hover {
     bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     padding: 11px 14px;
   }
+}
+
+
+.comment-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.comment-tool {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.04);
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: .18s ease;
+}
+.comment-tool:hover {
+  color: var(--text);
+  border-color: rgba(143,136,255,.45);
+  transform: translateY(-1px);
+}
+.comment-tool.danger:hover {
+  border-color: rgba(255,120,120,.45);
+  color: #ff8f8f;
 }

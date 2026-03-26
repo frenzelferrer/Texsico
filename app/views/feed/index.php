@@ -1,7 +1,6 @@
 <?php
 $page = 'feed';
 require BASE_PATH . '/app/views/partials/header.php';
-require_once BASE_PATH . '/app/models/UserModel.php';
 
 function avatarUrl($img, $name = 'User') {
     if (!$img || $img === 'default.png') {
@@ -28,9 +27,9 @@ function timeAgo($datetime) {
     return $ago->format('M j, Y');
 }
 
-$userModelFeed = new UserModel();
-$storyUsers = $userModelFeed->getAllExcept((int)$currentUserId, 8);
-$suggestedUsers = array_slice($storyUsers, 0, 3);
+$storyUsers = $storyUsers ?? [];
+$suggestedUsers = $suggestedUsers ?? [];
+$discoverUsers = $discoverUsers ?? [];
 $hour = (int) date('G');
 $greeting = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
 $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($currentFullName ?: 'there'));
@@ -254,7 +253,10 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                       <span class="comment-author"><?= htmlspecialchars($c['full_name']) ?></span>
                       <?php if ($c['user_id'] == $currentUserId): ?>
-                      <button onclick="deleteComment(<?= $c['id'] ?>, <?= $post['id'] ?>)" style="background:none; border:none; color:var(--accent2); cursor:pointer; font-size:12px; padding:0;"><i class="fa-solid fa-trash"></i></button>
+                      <div class="comment-tools">
+                        <button class="comment-tool" type="button" onclick="openEditComment(<?= $c['id'] ?>, <?= $post['id'] ?>, <?= htmlspecialchars(json_encode($c['content'])) ?>)"><i class="fa-solid fa-pen"></i></button>
+                        <button class="comment-tool danger" type="button" onclick="deleteComment(<?= $c['id'] ?>, <?= $post['id'] ?>)"><i class="fa-solid fa-trash"></i></button>
+                      </div>
                       <?php endif; ?>
                     </div>
                     <div class="comment-text"><?= nl2br(htmlspecialchars($c['content'])) ?></div>
@@ -281,13 +283,7 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
 
   <aside class="right-sidebar">
     <div class="widget-title"><i class="fa-solid fa-compass"></i> Discover</div>
-    <?php
-    require_once BASE_PATH . '/app/models/UserModel.php';
-    $um = new UserModel();
-    $suggestions = $um->getAllExcept($currentUserId);
-    $suggestions = array_slice($suggestions, 0, 6);
-    ?>
-    <?php foreach ($suggestions as $u): ?>
+    <?php foreach ($discoverUsers as $u): ?>
       <a href="index.php?page=profile&id=<?= $u['id'] ?>" class="user-card">
         <img decoding="async" loading="lazy" src="<?= postAvatarUrl($u['profile_image'], $u['full_name']) ?>" class="avatar avatar-sm" alt="">
         <div>
@@ -318,6 +314,24 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
         <button class="btn btn-ghost" onclick="closeModal('editPostModal')">Cancel</button>
         <button class="btn btn-primary" onclick="saveEditPost()"><i class="fa-solid fa-check"></i> Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editCommentModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">Edit Comment</span>
+      <button class="modal-close" type="button" onclick="closeModal('editCommentModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editCommentId">
+      <input type="hidden" id="editCommentPostId">
+      <textarea class="form-control" id="editCommentContent" rows="3" data-autogrow="true" data-max-height="200" placeholder="Edit your comment…"></textarea>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+        <button class="btn btn-ghost" type="button" onclick="closeModal('editCommentModal')">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="saveEditComment()"><i class="fa-solid fa-check"></i> Save</button>
       </div>
     </div>
   </div>
@@ -380,7 +394,7 @@ async function submitComment(postId) {
         <div class="comment-bubble" style="flex:1;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <span class="comment-author">${escHtml(c.full_name)}</span>
-            <button onclick="deleteComment(${c.id}, ${postId})" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:12px;padding:0;"><i class="fa-solid fa-trash"></i></button>
+            <div class="comment-tools"><button class="comment-tool" type="button" data-comment-content="${escHtml(c.content)}" onclick="openEditComment(${c.id}, ${postId}, this.dataset.commentContent)"><i class="fa-solid fa-pen"></i></button><button class="comment-tool danger" type="button" onclick="deleteComment(${c.id}, ${postId})"><i class="fa-solid fa-trash"></i></button></div>
           </div>
           <div class="comment-text">${escHtml(c.content)}</div>
           <div class="comment-time">just now</div>
@@ -641,7 +655,7 @@ async function saveEditPost() {
   const data = await res.json();
   if (data.success) {
     const el = document.getElementById('post-content-' + postId);
-    if (el) el.innerHTML = data.content.replace(/\n/g, '<br>');
+    if (el) el.innerHTML = escHtml(data.content).replace(/\n/g, '<br>');
     closeModal('editPostModal');
     showToast('Post updated!', 'success');
   }
@@ -679,5 +693,34 @@ function escHtml(str) {
   d.textContent = str;
   return d.innerHTML;
 }
-    
+
+function openEditComment(commentId, postId, content) {
+  document.getElementById('editCommentId').value = commentId;
+  document.getElementById('editCommentPostId').value = postId;
+  document.getElementById('editCommentContent').value = content;
+  document.getElementById('editCommentModal').classList.add('open');
+}
+
+async function saveEditComment() {
+  const commentId = document.getElementById('editCommentId').value;
+  const postId = document.getElementById('editCommentPostId').value;
+  const content = document.getElementById('editCommentContent').value.trim();
+  if (!content) return;
+
+  const res = await fetch('index.php?page=comment.update', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+    body: `comment_id=${commentId}&content=${encodeURIComponent(content)}&csrf_token=${encodeURIComponent(CSRF_TOKEN)}`
+  });
+  const data = await res.json();
+  if (data.success && data.comment) {
+    const textEl = document.querySelector(`#comment-${commentId} .comment-text`);
+    if (textEl) textEl.innerHTML = escHtml(data.comment.content).replace(/\n/g, '<br>');
+    closeModal('editCommentModal');
+    showToast('Comment updated!', 'success');
+    const commentsEl = document.getElementById('comments-' + postId);
+    if (commentsEl && commentsEl.style.display === 'none') commentsEl.style.display = 'block';
+  }
+}
+
 </script>

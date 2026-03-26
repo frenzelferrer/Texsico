@@ -11,21 +11,25 @@ class MessageModel {
     public function getConversation(int $userId, int $otherId): array {
         $stmt = $this->db->prepare(
             "SELECT * FROM (
-                SELECT m.*, 
-                    DATE_FORMAT(m.created_at, '%l:%i %p') AS time_formatted,
+                SELECT m.*,
                     su.username AS sender_username,
                     su.full_name AS sender_name,
                     su.profile_image AS sender_image
                 FROM messages m
                 JOIN users su ON m.sender_id = su.id
-                WHERE (m.sender_id=? AND m.receiver_id=?) OR (m.sender_id=? AND m.receiver_id=?)
+                WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
                 ORDER BY m.id DESC
                 LIMIT 120
             ) recent
             ORDER BY recent.id ASC"
         );
         $stmt->execute([$userId, $otherId, $otherId, $userId]);
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            $row['time_formatted'] = format_chat_time((string)$row['created_at']);
+        }
+        unset($row);
+        return $rows;
     }
 
     public function send(int $senderId, int $receiverId, string $message): int {
@@ -76,7 +80,7 @@ class MessageModel {
                         WHEN lm.message_type = 'voice' THEN '[Voice message]'
                         ELSE lm.message
                     END AS last_message,
-                    DATE_FORMAT(lm.created_at, '%l:%i %p') AS last_time,
+                    lm.created_at AS last_created_at,
                     COALESCE(unread_counts.unread, 0) AS unread
              FROM (
                 SELECT CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END AS partner_id,
@@ -96,13 +100,17 @@ class MessageModel {
              ORDER BY lm.created_at DESC, lm.id DESC"
         );
         $stmt->execute([$userId, $userId, $userId, $userId, $userId]);
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            $row['last_time'] = format_chat_time((string)$row['last_created_at']);
+        }
+        unset($row);
+        return $rows;
     }
 
     public function getNewMessages(int $userId, int $otherId, int $lastId): array {
         $stmt = $this->db->prepare(
-            "SELECT m.*, DATE_FORMAT(m.created_at, '%l:%i %p') AS time_formatted,
-                    su.username AS sender_username, su.profile_image AS sender_image
+            "SELECT m.*, su.username AS sender_username, su.profile_image AS sender_image
              FROM messages m
              JOIN users su ON m.sender_id = su.id
              WHERE m.id > ?
@@ -110,9 +118,13 @@ class MessageModel {
              ORDER BY m.created_at ASC, m.id ASC"
         );
         $stmt->execute([$lastId, $userId, $otherId, $otherId, $userId]);
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            $row['time_formatted'] = format_chat_time((string)$row['created_at']);
+        }
+        unset($row);
+        return $rows;
     }
-
 
     public function getSharedImages(int $userId, int $otherId, int $limit = 6): array {
         $limit = max(1, min(12, $limit));

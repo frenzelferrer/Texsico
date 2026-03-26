@@ -199,7 +199,10 @@ $coverImage = coverUrlP($profileUser['cover_photo'] ?? null);
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                       <span class="comment-author"><?= htmlspecialchars($c['full_name']) ?></span>
                       <?php if ($c['user_id'] == $currentUserId): ?>
-                      <button onclick="deleteComment(<?= $c['id'] ?>, <?= $post['id'] ?>)" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:12px;padding:0;"><i class="fa-solid fa-trash"></i></button>
+                      <div class="comment-tools">
+                        <button class="comment-tool" type="button" onclick="openEditComment(<?= $c['id'] ?>, <?= $post['id'] ?>, <?= htmlspecialchars(json_encode($c['content'])) ?>)"><i class="fa-solid fa-pen"></i></button>
+                        <button class="comment-tool danger" type="button" onclick="deleteComment(<?= $c['id'] ?>, <?= $post['id'] ?>)"><i class="fa-solid fa-trash"></i></button>
+                      </div>
                       <?php endif; ?>
                     </div>
                     <div class="comment-text"><?= nl2br(htmlspecialchars($c['content'])) ?></div>
@@ -259,7 +262,8 @@ $coverImage = coverUrlP($profileUser['cover_photo'] ?? null);
         </div>
         <div class="form-group">
           <label class="form-label">Full Name</label>
-          <input type="text" name="full_name" class="form-control" value="<?= htmlspecialchars($profileUser['full_name']) ?>" required>
+          <input type="text" name="full_name" class="form-control" value="<?= htmlspecialchars($profileUser['full_name']) ?>" maxlength="80" required>
+          <div style="font-size:12px; color:var(--text-dim); margin-top:6px;">Name max 80 characters.</div>
         </div>
         <div class="form-group">
           <label class="form-label">Bio</label>
@@ -295,7 +299,26 @@ $coverImage = coverUrlP($profileUser['cover_photo'] ?? null);
     </div>
   </div>
 </div>
+
 <?php endif; ?>
+
+<div class="modal-overlay" id="editCommentModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">Edit Comment</span>
+      <button class="modal-close" type="button" onclick="closeModal('editCommentModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editCommentId">
+      <input type="hidden" id="editCommentPostId">
+      <textarea class="form-control" id="editCommentContent" rows="3" data-autogrow="true" data-max-height="200" placeholder="Edit your comment…"></textarea>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+        <button class="btn btn-ghost" type="button" onclick="closeModal('editCommentModal')">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="saveEditComment()"><i class="fa-solid fa-check"></i> Save</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 const CSRF_TOKEN = <?= json_encode(csrf_token()) ?>;
@@ -331,6 +354,7 @@ function toggleComments(postId) {
 }
 
 function escHtml(str) { const d=document.createElement('div'); d.textContent=str; return d.innerHTML; }
+function openEditComment(commentId, postId, content) { document.getElementById('editCommentId').value=commentId; document.getElementById('editCommentPostId').value=postId; document.getElementById('editCommentContent').value=content; document.getElementById('editCommentModal').classList.add('open'); }
 
 async function submitComment(postId) {
   const input=document.getElementById('comment-input-'+postId);
@@ -340,7 +364,7 @@ async function submitComment(postId) {
   if(data.success){
     const c=data.comment;
     const av=c.profile_image&&c.profile_image!=='default.png'?`index.php?asset=avatar&f=${encodeURIComponent(c.profile_image)}`:defaultAvatarUrl(c.full_name, 128);
-    document.getElementById('comments-list-'+postId).insertAdjacentHTML('beforeend',`<div class="comment-item" id="comment-${c.id}"><img decoding="async" loading="lazy" src="${av}" class="avatar" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;"><div class="comment-bubble" style="flex:1;"><div style="display:flex;justify-content:space-between;"><span class="comment-author">${escHtml(c.full_name)}</span><button onclick="deleteComment(${c.id},${postId})" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:12px;padding:0;"><i class="fa-solid fa-trash"></i></button></div><div class="comment-text">${escHtml(c.content)}</div><div class="comment-time">just now</div></div></div>`);
+    document.getElementById('comments-list-'+postId).insertAdjacentHTML('beforeend',`<div class="comment-item" id="comment-${c.id}"><img decoding="async" loading="lazy" src="${av}" class="avatar" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;"><div class="comment-bubble" style="flex:1;"><div style="display:flex;justify-content:space-between;"><span class="comment-author">${escHtml(c.full_name)}</span><div class="comment-tools"><button class="comment-tool" type="button" data-comment-content="${escHtml(c.content)}" onclick="openEditComment(${c.id}, ${postId}, this.dataset.commentContent)"><i class="fa-solid fa-pen"></i></button><button class="comment-tool danger" type="button" onclick="deleteComment(${c.id},${postId})"><i class="fa-solid fa-trash"></i></button></div></div><div class="comment-text">${escHtml(c.content)}</div><div class="comment-time">just now</div></div></div>`);
     const cnt=document.getElementById('comment-count-'+postId); cnt.textContent=parseInt(cnt.textContent)+1;
   }
 }
@@ -349,6 +373,16 @@ async function deleteComment(commentId, postId) {
   const res=await fetch('index.php?page=comment.delete',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},body:`comment_id=${commentId}&csrf_token=${encodeURIComponent(CSRF_TOKEN)}`});
   const data=await res.json();
   if(data.success){document.getElementById('comment-'+commentId)?.remove();const cnt=document.getElementById('comment-count-'+postId);cnt.textContent=Math.max(0,parseInt(cnt.textContent)-1);}
+}
+
+async function saveEditComment() {
+  const commentId=document.getElementById('editCommentId').value;
+  const postId=document.getElementById('editCommentPostId').value;
+  const content=document.getElementById('editCommentContent').value.trim();
+  if(!content) return;
+  const res=await fetch('index.php?page=comment.update',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},body:`comment_id=${commentId}&content=${encodeURIComponent(content)}&csrf_token=${encodeURIComponent(CSRF_TOKEN)}`});
+  const data=await res.json();
+  if(data.success&&data.comment){const textEl=document.querySelector(`#comment-${commentId} .comment-text`);if(textEl)textEl.innerHTML=escHtml(data.comment.content).replace(/\n/g,'<br>');closeModal('editCommentModal');}
 }
 
 function openEditPost(postId, content) {
@@ -362,7 +396,7 @@ async function saveEditPost() {
   const content=document.getElementById('editPostContent').value.trim(); if(!content) return;
   const res=await fetch('index.php?page=post.update',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},body:`post_id=${postId}&content=${encodeURIComponent(content)}&csrf_token=${encodeURIComponent(CSRF_TOKEN)}`});
   const data=await res.json();
-  if(data.success){const el=document.getElementById('post-content-'+postId);if(el)el.innerHTML=data.content.replace(/\n/g,'<br>');closeModal('editPostModal');showToast('Post updated!','success');}
+  if(data.success){const el=document.getElementById('post-content-'+postId);if(el)el.innerHTML=escHtml(data.content).replace(/\n/g,'<br>');closeModal('editPostModal');showToast('Post updated!','success');}
 }
 
 async function deletePost(postId) {

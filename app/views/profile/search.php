@@ -92,11 +92,6 @@ function avatarUrlS($img, $name) {
       </div>
     <?php else: ?>
       <!-- Show all users when no search -->
-      <?php
-      require_once BASE_PATH . '/app/models/UserModel.php';
-      $um = new UserModel();
-      $allUsers = $um->getAllExcept($currentUserId);
-      ?>
       <div style="margin-bottom:16px;">
         <div class="widget-title">Everyone on Texsico</div>
       </div>

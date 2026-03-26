@@ -1,0 +1,5 @@
+config/database.credentials.php
+/tests/runtime/
+/tests/*.sqlite
+/tests/*.db
+/assets/uploads/

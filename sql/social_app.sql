@@ -3,8 +3,8 @@
 -- Database Schema
 -- ============================================
 
-CREATE DATABASE IF NOT EXISTS if0_41474470_texsico_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE if0_41474470_texsico_db;
+CREATE DATABASE IF NOT EXISTS texsico_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE texsico_db;
 
 -- Users table
 CREATE TABLE users (

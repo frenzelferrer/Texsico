@@ -8,14 +8,17 @@ session_set_cookie_params([
     'samesite' => 'Lax',
 ]);
 ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
 date_default_timezone_set('Asia/Manila');
 session_start();
 
 define('BASE_PATH', __DIR__);
-define('BASE_URL', ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/');
+$hostHeader = preg_replace('/[^A-Za-z0-9.:-]/', '', $_SERVER['HTTP_HOST'] ?? 'localhost');
+define('BASE_URL', ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . ($hostHeader ?: 'localhost') . '/');
 
 require_once BASE_PATH . '/app/helpers/AppHelper.php';
 app_boot_optimizations();
+apply_security_headers(true);
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -161,6 +164,10 @@ switch ($page) {
 
     case 'comment.delete':
         $postCtrl->deleteComment();
+        break;
+
+    case 'comment.update':
+        $postCtrl->updateComment();
         break;
 
     case 'profile':
