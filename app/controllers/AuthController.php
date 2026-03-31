@@ -39,7 +39,7 @@ class AuthController {
         verify_csrf_request();
         $this->checkLoginRateLimit();
 
-        $identifier = trim($_POST['identifier'] ?? '');
+        $identifier = app_normalize_single_line((string)($_POST['identifier'] ?? ''), 120);
         $password = $_POST['password'] ?? '';
 
         if ($identifier === '' || $password === '') {
@@ -48,7 +48,7 @@ class AuthController {
             exit;
         }
 
-        if (mb_strlen($identifier) > 120 || mb_strlen($password) > 255) {
+        if (app_strlen($identifier) > 120 || app_strlen($password) > 255) {
             $_SESSION['error'] = 'Invalid credentials. Please try again.';
             header('Location: index.php?page=login');
             exit;
@@ -106,30 +106,36 @@ private function checkRegisterRateLimit(): void {
         verify_csrf_request();
         $this->checkRegisterRateLimit();
 
-        $username = trim($_POST['username'] ?? '');
-        $email = trim($_POST['email'] ?? '');
+        $username = app_normalize_single_line((string)($_POST['username'] ?? ''), 20);
+        $email = app_normalize_single_line((string)($_POST['email'] ?? ''), 120);
         $password = $_POST['password'] ?? '';
         $confirm = $_POST['confirm_password'] ?? '';
-        $fullName = trim($_POST['full_name'] ?? '');
+        $fullName = app_normalize_single_line((string)($_POST['full_name'] ?? ''), 80);
 
         $errors = [];
         if ($username === '' || $email === '' || $password === '' || $fullName === '') {
             $errors[] = 'All fields are required.';
         }
-        if (mb_strlen($username) < 3 || mb_strlen($username) > 20) {
+        if (app_strlen($username) < 3 || app_strlen($username) > 20) {
             $errors[] = 'Username must be between 3 and 20 characters.';
         }
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
             $errors[] = 'Username can only contain letters, numbers, and underscores.';
         }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 120) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || app_strlen($email) > 120) {
             $errors[] = 'Invalid email address.';
         }
-        if (mb_strlen($fullName) < 1 || mb_strlen($fullName) > 80) {
+        if (app_strlen($fullName) < 1 || app_strlen($fullName) > 80) {
             $errors[] = 'Full name must be between 1 and 80 characters.';
         }
         if (strlen($password) < 8 || strlen($password) > 255) {
             $errors[] = 'Password must be at least 8 characters.';
+        }
+        if (!preg_match('/[a-z]/', $password) || !preg_match('/[A-Z]/', $password)) {
+            $errors[] = 'Password must include both lowercase and uppercase letters.';
+        }
+        if (!preg_match('/\d/', $password) && !preg_match('/[^A-Za-z0-9]/', $password)) {
+            $errors[] = 'Password must include at least one number or symbol.';
         }
         if ($password !== $confirm) {
             $errors[] = 'Passwords do not match.';

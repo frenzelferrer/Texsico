@@ -14,6 +14,10 @@ DirectoryIndex index.php
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
     Header always set Cross-Origin-Resource-Policy "same-origin"
+    Header always unset Access-Control-Allow-Origin
+    Header always unset Access-Control-Allow-Credentials
+    Header always unset Access-Control-Allow-Methods
+    Header always unset Access-Control-Allow-Headers
 </IfModule>
 
 <IfModule mod_expires.c>

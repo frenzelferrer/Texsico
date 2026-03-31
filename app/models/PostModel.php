@@ -28,48 +28,86 @@ class PostModel {
             ) cs ON cs.post_id = p.id";
     }
 
+    private function visibilityCondition(string $ownerColumn = 'p.user_id'): string {
+        return "($ownerColumn = ? OR EXISTS (
+            SELECT 1
+            FROM friendships f
+            WHERE f.status = 'accepted'
+              AND ((f.user_one_id = ? AND f.user_two_id = $ownerColumn)
+                   OR (f.user_two_id = ? AND f.user_one_id = $ownerColumn))
+        ))";
+    }
+
+    private function visibilityParams(int $viewerId): array {
+        return [$viewerId, $viewerId, $viewerId];
+    }
+
     public function getAllPosts(int $userId): array {
-        $stmt = $this->db->prepare($this->baseSelect() . " ORDER BY p.created_at DESC, p.id DESC");
-        $stmt->execute([$userId]);
+        $sql = $this->baseSelect() . ' WHERE ' . $this->visibilityCondition('p.user_id') . ' ORDER BY p.created_at DESC, p.id DESC';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(array_merge([$userId], $this->visibilityParams($userId)));
         return $stmt->fetchAll();
     }
 
     public function getPostsByUser(int $profileUserId, int $currentUserId): array {
-        $stmt = $this->db->prepare($this->baseSelect() . " WHERE p.user_id = ? ORDER BY p.created_at DESC, p.id DESC");
+        if (!$this->canViewAuthorPosts($currentUserId, $profileUserId)) {
+            return [];
+        }
+        $stmt = $this->db->prepare($this->baseSelect() . ' WHERE p.user_id = ? ORDER BY p.created_at DESC, p.id DESC');
         $stmt->execute([$currentUserId, $profileUserId]);
         return $stmt->fetchAll();
     }
 
     public function getPostById(int $id): ?array {
-        $stmt = $this->db->prepare("SELECT * FROM posts WHERE id = ? LIMIT 1");
+        $stmt = $this->db->prepare('SELECT * FROM posts WHERE id = ? LIMIT 1');
         $stmt->execute([$id]);
         return $stmt->fetch() ?: null;
     }
 
-    public function create(int $userId, string $content, ?string $image): int {
+    public function canUserAccessPost(int $postId, int $viewerId): bool {
         $stmt = $this->db->prepare(
-            "INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)"
+            'SELECT 1 FROM posts p WHERE p.id = ? AND ' . $this->visibilityCondition('p.user_id') . ' LIMIT 1'
         );
+        $stmt->execute(array_merge([$postId], $this->visibilityParams($viewerId)));
+        return (bool)$stmt->fetchColumn();
+    }
+
+    public function canViewAuthorPosts(int $viewerId, int $authorId): bool {
+        if ($viewerId === $authorId) {
+            return true;
+        }
+        $stmt = $this->db->prepare(
+            "SELECT 1
+             FROM friendships f
+             WHERE f.status = 'accepted'
+               AND ((f.user_one_id = ? AND f.user_two_id = ?) OR (f.user_two_id = ? AND f.user_one_id = ?))
+             LIMIT 1"
+        );
+        $stmt->execute([$viewerId, $authorId, $viewerId, $authorId]);
+        return (bool)$stmt->fetchColumn();
+    }
+
+    public function create(int $userId, string $content, ?string $image): int {
+        $stmt = $this->db->prepare('INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)');
         $stmt->execute([$userId, $content, $image]);
-        return (int) $this->db->lastInsertId();
+        return (int)$this->db->lastInsertId();
     }
 
     public function update(int $id, int $userId, string $content): bool {
-        $stmt = $this->db->prepare(
-            "UPDATE posts SET content=? WHERE id=? AND user_id=?"
-        );
+        $stmt = $this->db->prepare('UPDATE posts SET content = ? WHERE id = ? AND user_id = ?');
         return $stmt->execute([$content, $id, $userId]);
     }
 
     public function delete(int $id, int $userId): bool {
-        $stmt = $this->db->prepare("DELETE FROM posts WHERE id=? AND user_id=?");
+        $stmt = $this->db->prepare('DELETE FROM posts WHERE id = ? AND user_id = ?');
         return $stmt->execute([$id, $userId]);
     }
 
     public function search(string $query, int $userId): array {
         $like = '%' . $query . '%';
-        $stmt = $this->db->prepare($this->baseSelect() . " WHERE p.content LIKE ? ORDER BY p.created_at DESC, p.id DESC");
-        $stmt->execute([$userId, $like]);
+        $sql = $this->baseSelect() . ' WHERE ' . $this->visibilityCondition('p.user_id') . ' AND p.content LIKE ? ORDER BY p.created_at DESC, p.id DESC';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(array_merge([$userId], $this->visibilityParams($userId), [$like]));
         return $stmt->fetchAll();
     }
 }

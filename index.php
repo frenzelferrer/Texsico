@@ -19,6 +19,7 @@ define('BASE_URL', ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ?
 require_once BASE_PATH . '/app/helpers/AppHelper.php';
 app_boot_optimizations();
 apply_security_headers(true);
+reject_cross_origin_preflight();
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -38,6 +39,7 @@ if (!function_exists('csrf_input')) {
 
 if (!function_exists('verify_csrf_request')) {
     function verify_csrf_request(): void {
+        ensure_same_origin_request();
         $token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         if (!$token || !hash_equals(csrf_token(), $token)) {
             http_response_code(403);
@@ -53,10 +55,10 @@ if (!function_exists('default_avatar_data_uri')) {
         $parts = preg_split('/\s+/', $name) ?: [];
         $initials = '';
         foreach (array_slice($parts, 0, 2) as $part) {
-            $initials .= strtoupper(mb_substr($part, 0, 1));
+            $initials .= strtoupper(app_substr($part, 0, 1));
         }
         if ($initials === '') {
-            $initials = strtoupper(mb_substr($name, 0, 2));
+            $initials = strtoupper(app_substr($name, 0, 2));
         }
         $palette = [
             ['#53d4ff', '#8f88ff'],
@@ -66,7 +68,7 @@ if (!function_exists('default_avatar_data_uri')) {
             ['#f472b6', '#fb7185'],
             ['#60a5fa', '#a78bfa'],
         ];
-        $pair = $palette[abs(crc32(mb_strtolower($name))) % count($palette)];
+        $pair = $palette[abs(crc32(app_strtolower($name))) % count($palette)];
         $fontSize = max(22, (int) floor($size * 0.34));
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' . $size . '" height="' . $size . '" viewBox="0 0 ' . $size . ' ' . $size . '">'
             . '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">'
@@ -100,11 +102,28 @@ if (!function_exists('asset_upload_path')) {
 }
 
 if (isset($_GET['asset']) && isset($_GET['f'])) {
+    if (!isset($_SESSION['user_id'])) {
+        http_response_code(403);
+        exit('Authentication required.');
+    }
+
     $type = (string)$_GET['asset'];
-    $path = asset_upload_path($type, (string)$_GET['f']);
+    $filename = (string)$_GET['f'];
+    $path = asset_upload_path($type, $filename);
     if ($path) {
+        if (in_array($type, ['chat', 'voice'], true)) {
+            require_once BASE_PATH . '/config/database.php';
+            require_once BASE_PATH . '/app/models/MessageModel.php';
+            $messageModel = new MessageModel();
+            if (!$messageModel->userCanAccessMedia((int)$_SESSION['user_id'], $filename, $type === 'voice' ? 'voice' : 'image')) {
+                http_response_code(403);
+                exit('Not authorized to access this media.');
+            }
+            stream_uploaded_asset($path, 0, true);
+        }
+
         $ttl = in_array($type, ['avatar', 'cover'], true) ? 2592000 : 604800;
-        stream_uploaded_asset($path, $ttl);
+        stream_uploaded_asset($path, $ttl, true);
     }
     http_response_code(404);
     exit;
@@ -113,15 +132,21 @@ if (isset($_GET['asset']) && isset($_GET['f'])) {
 require_once BASE_PATH . '/config/database.php';
 require_once BASE_PATH . '/app/controllers/AuthController.php';
 require_once BASE_PATH . '/app/controllers/PostController.php';
+require_once BASE_PATH . '/app/controllers/CommentController.php';
 require_once BASE_PATH . '/app/controllers/ProfileController.php';
 require_once BASE_PATH . '/app/controllers/ChatController.php';
+require_once BASE_PATH . '/app/controllers/FriendshipController.php';
+require_once BASE_PATH . '/app/controllers/NotificationController.php';
 
 $page = $_GET['page'] ?? 'login';
 
 $authCtrl = new AuthController();
 $postCtrl = new PostController();
+$commentCtrl = new CommentController();
 $profileCtrl = new ProfileController();
 $chatCtrl = new ChatController();
+$friendshipCtrl = new FriendshipController();
+$notificationCtrl = new NotificationController();
 
 switch ($page) {
     case 'login':
@@ -159,15 +184,15 @@ switch ($page) {
         break;
 
     case 'comment.add':
-        $postCtrl->addComment();
+        $commentCtrl->addComment();
         break;
 
     case 'comment.delete':
-        $postCtrl->deleteComment();
+        $commentCtrl->deleteComment();
         break;
 
     case 'comment.update':
-        $postCtrl->updateComment();
+        $commentCtrl->updateComment();
         break;
 
     case 'profile':
@@ -189,6 +214,22 @@ switch ($page) {
 
     case 'chat.poll':
         $chatCtrl->pollMessages();
+        break;
+
+    case 'friend.request':
+        $friendshipCtrl->request();
+        break;
+
+    case 'friend.accept':
+        $friendshipCtrl->accept();
+        break;
+
+    case 'friend.remove':
+        $friendshipCtrl->remove();
+        break;
+
+    case 'notifications.read':
+        $notificationCtrl->markAllRead();
         break;
 
     default:

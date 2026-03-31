@@ -3,18 +3,21 @@ require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../models/PostModel.php';
 require_once __DIR__ . '/../models/CommentModel.php';
 require_once __DIR__ . '/../models/MessageModel.php';
+require_once __DIR__ . '/../models/FriendshipModel.php';
 
 class ProfileController {
     private UserModel $userModel;
     private PostModel $postModel;
     private CommentModel $commentModel;
     private MessageModel $messageModel;
+    private FriendshipModel $friendshipModel;
 
     public function __construct() {
         $this->userModel = new UserModel();
         $this->postModel = new PostModel();
         $this->commentModel = new CommentModel();
         $this->messageModel = new MessageModel();
+        $this->friendshipModel = new FriendshipModel();
     }
 
     private function requireAuth(): void {
@@ -35,9 +38,12 @@ class ProfileController {
             exit;
         }
 
-        $posts = $this->postModel->getPostsByUser($profileId, $currentUserId);
+        $friendshipState = $this->friendshipModel->getState($currentUserId, $profileId);
+        $canViewPosts = ($profileId === $currentUserId) || $this->friendshipModel->areFriends($currentUserId, $profileId);
+        $posts = $canViewPosts ? $this->postModel->getPostsByUser($profileId, $currentUserId) : [];
         $comments = $this->commentModel->getByPostIds(array_column($posts, 'id'));
         $unreadMsgCount = $this->messageModel->getUnreadCount($currentUserId);
+        $friendCount = $this->friendshipModel->getFriendCount($profileId);
 
         require __DIR__ . '/../views/profile/index.php';
     }
@@ -54,10 +60,10 @@ class ProfileController {
 
         $userId = (int)$_SESSION['user_id'];
         $existingUser = $this->userModel->findById($userId);
-        $fullName = trim($_POST['full_name'] ?? '');
-        $bio = trim($_POST['bio'] ?? '');
+        $fullName = app_normalize_single_line((string)($_POST['full_name'] ?? ''), 80);
+        $bio = app_normalize_multiline((string)($_POST['bio'] ?? ''), 300);
 
-        if ($fullName === '' || mb_strlen($fullName) > 80 || mb_strlen($bio) > 300) {
+        if ($fullName === '' || app_strlen($fullName) > 80 || app_strlen($bio) > 300) {
             $_SESSION['error'] = 'Please keep your profile details within the allowed length.';
             header('Location: index.php?page=profile');
             exit;
@@ -113,10 +119,20 @@ class ProfileController {
 
     public function searchUsers(): void {
         $this->requireAuth();
-        $q = mb_substr(trim($_GET['q'] ?? ''), 0, 100);
+        $q = app_normalize_single_line((string)($_GET['q'] ?? ''), 100);
         $userId = (int)$_SESSION['user_id'];
         $results = $q !== '' ? $this->userModel->searchUsers($q, $userId) : [];
         $allUsers = $q === '' ? $this->userModel->getAllExcept($userId) : [];
+        $targets = array_merge($results, $allUsers);
+        $stateMap = $this->friendshipModel->getStateMap($userId, array_column($targets, 'id'));
+        foreach ($results as &$user) {
+            $user['friendship_state'] = $stateMap[(int)$user['id']] ?? 'none';
+        }
+        unset($user);
+        foreach ($allUsers as &$user) {
+            $user['friendship_state'] = $stateMap[(int)$user['id']] ?? 'none';
+        }
+        unset($user);
         $unreadMsgCount = $this->messageModel->getUnreadCount($userId);
         require __DIR__ . '/../views/profile/search.php';
     }

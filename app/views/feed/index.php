@@ -37,6 +37,10 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
 
 <div class="app-layout">
   <aside class="sidebar">
+    <a href="index.php?page=feed" class="sidebar-brand">
+      <img src="favicon-32x32.png" alt="Texsico logo" class="sidebar-brand-icon">
+      <span class="sidebar-brand-text">Texsico</span>
+    </a>
     <a href="index.php?page=profile" class="sidebar-profile">
       <img decoding="async" loading="lazy" src="<?= postAvatarUrl($currentAvatar, $currentFullName) ?>" alt="You" class="avatar avatar-sm">
       <div>
@@ -50,7 +54,7 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
     <ul class="sidebar-menu">
       <li><a href="index.php?page=feed" class="active"><span class="menu-icon"><i class="fa-solid fa-house"></i></span> Home</a></li>
       <li><a href="index.php?page=profile"><span class="menu-icon"><i class="fa-regular fa-user"></i></span> My Profile</a></li>
-      <li><a href="index.php?page=search"><span class="menu-icon"><i class="fa-solid fa-users"></i></span> Discover People</a></li>
+      <li><a href="index.php?page=search"><span class="menu-icon"><i class="fa-solid fa-users"></i></span> People</a></li>
       <li>
         <a href="index.php?page=chat">
           <span class="menu-icon"><i class="fa-regular fa-message"></i></span> Messages
@@ -63,15 +67,30 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
 
     <div class="sidebar-divider"></div>
 
-    <form action="index.php?page=logout" method="POST" class="logout-inline-form">
-      <?= csrf_input() ?>
-      <button type="submit" class="logout-btn">
-        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
-      </button>
-    </form>
+    <form action="index.php?page=logout" method="POST" class="logout-ux-form">
+  <?= csrf_input() ?>
+  <button type="submit" class="logout-ux-btn" aria-label="Logout">
+    <span class="logout-ux-sign" aria-hidden="true">
+      <svg viewBox="0 0 512 512">
+        <path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"></path>
+      </svg>
+    </span>
+    <span class="logout-ux-text">Logout</span>
+  </button>
+</form>
   </aside>
 
   <main class="main-content page-shell">
+    <section class="activity-strip card">
+      <div class="activity-strip-copy">
+        <strong>Friends-only feed</strong>
+        <span>Only you and accepted friends can view posts and chat now.</span>
+      </div>
+      <div class="activity-strip-meta">
+        <span><i class="fa-solid fa-user-group"></i> <?= (int)($friendCount ?? 0) ?> friends</span>
+        <a href="index.php?page=search">Manage people</a>
+      </div>
+    </section>
     <?php if (!empty($search)): ?>
       <div class="search-card" style="margin-bottom:16px; display:flex; align-items:center; gap:10px;">
         <span style="color:var(--text-muted); font-size:14px;">
@@ -161,16 +180,24 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
           </div>
           <?php if (!empty($suggestedUsers)): ?>
             <div style="margin-top:10px;">
-              <div class="widget-title" style="margin-bottom:12px;">Suggested people to message</div>
+              <div class="widget-title" style="margin-bottom:12px;">People you may know</div>
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; text-align:left;">
                 <?php foreach ($suggestedUsers as $u): ?>
-                  <a href="index.php?page=chat&with=<?= (int)$u['id'] ?>" class="user-card" style="background:rgba(255,255,255,.04); border:1px solid var(--border);">
-                    <img decoding="async" loading="lazy" src="<?= postAvatarUrl($u['profile_image'], $u['full_name']) ?>" class="avatar avatar-sm" alt="">
-                    <div>
-                      <div class="user-card-name"><?= htmlspecialchars($u['full_name']) ?></div>
-                      <div class="user-card-username">@<?= htmlspecialchars($u['username']) ?></div>
-                    </div>
-                  </a>
+                  <?php $sState = $u['friendship_state'] ?? 'none'; ?>
+                  <div class="user-card" style="background:rgba(255,255,255,.04); border:1px solid var(--border); justify-content:space-between; gap:10px;">
+                    <a href="index.php?page=profile&id=<?= (int)$u['id'] ?>" class="user-card-link">
+                      <img decoding="async" loading="lazy" src="<?= postAvatarUrl($u['profile_image'], $u['full_name']) ?>" class="avatar avatar-sm" alt="">
+                      <div>
+                        <div class="user-card-name"><?= htmlspecialchars($u['full_name']) ?></div>
+                        <div class="user-card-username">@<?= htmlspecialchars($u['username']) ?></div>
+                      </div>
+                    </a>
+                    <?php if ($sState === 'accepted'): ?>
+                      <a href="index.php?page=chat&with=<?= (int)$u['id'] ?>" class="btn btn-primary btn-sm"><i class="fa-solid fa-message"></i> Chat</a>
+                    <?php else: ?>
+                      <?= friend_action_button((int)$u['id'], $sState, true) ?>
+                    <?php endif; ?>
+                  </div>
                 <?php endforeach; ?>
               </div>
             </div>
@@ -282,21 +309,29 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
   </main>
 
   <aside class="right-sidebar">
-    <div class="widget-title"><i class="fa-solid fa-compass"></i> Discover</div>
+    <div class="widget-title"><i class="fa-solid fa-user-plus"></i> Who to connect with</div>
     <?php foreach ($discoverUsers as $u): ?>
-      <a href="index.php?page=profile&id=<?= $u['id'] ?>" class="user-card">
-        <img decoding="async" loading="lazy" src="<?= postAvatarUrl($u['profile_image'], $u['full_name']) ?>" class="avatar avatar-sm" alt="">
-        <div>
-          <div class="user-card-name"><?= htmlspecialchars($u['full_name']) ?></div>
-          <div class="user-card-username">@<?= htmlspecialchars($u['username']) ?></div>
-        </div>
-        <a href="index.php?page=chat&with=<?= $u['id'] ?>" style="margin-left:auto; color:var(--accent); font-size:14px;" title="Message"><i class="fa-solid fa-message"></i></a>
-      </a>
+      <div class="user-card user-card-compact">
+        <a href="index.php?page=profile&id=<?= $u['id'] ?>" class="user-card-link">
+          <img decoding="async" loading="lazy" src="<?= postAvatarUrl($u['profile_image'], $u['full_name']) ?>" class="avatar avatar-sm" alt="">
+          <div>
+            <div class="user-card-name"><?= htmlspecialchars($u['full_name']) ?></div>
+            <div class="user-card-username">@<?= htmlspecialchars($u['username']) ?></div>
+          </div>
+        </a>
+        <?= friend_action_button((int)$u['id'], $u['friendship_state'] ?? 'none', true) ?>
+      </div>
     <?php endforeach; ?>
-
-  
-
-   
+    <div class="widget-title" style="margin-top:20px;"><i class="fa-solid fa-shield-heart"></i> Private by design</div>
+    <div class="side-info-card">
+      <div class="side-info-list">
+        <div class="side-info-item"><i class="fa-solid fa-lock" style="color:var(--accent);"></i><span>Posts are visible only between friends.</span></div>
+        <div class="side-info-item"><i class="fa-solid fa-comments" style="color:var(--accent4);"></i><span>Chat opens after both users become friends.</span></div>
+        <div class="side-info-item"><i class="fa-regular fa-bell" style="color:var(--accent2);"></i><span>Use the bell button on top for likes, comments, and requests.</span></div>
+      </div>
+    </div>
+  </aside>
+</div>
 
 <button class="fab-post" type="button" onclick="focusComposer()">
   <i class="fa-solid fa-plus"></i> New post
@@ -306,14 +341,14 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Edit Post</span>
-      <button class="modal-close" onclick="closeModal('editPostModal')"><i class="fa-solid fa-xmark"></i></button>
+      <button class="modal-close" type="button" onclick="closeModal('editPostModal')"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="editPostId">
       <textarea class="form-control" id="editPostContent" rows="4" data-autogrow="true" data-max-height="240" placeholder="Edit your post…"></textarea>
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
-        <button class="btn btn-ghost" onclick="closeModal('editPostModal')">Cancel</button>
-        <button class="btn btn-primary" onclick="saveEditPost()"><i class="fa-solid fa-check"></i> Save</button>
+        <button class="btn btn-ghost" type="button" onclick="closeModal('editPostModal')">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="saveEditPost()"><i class="fa-solid fa-check"></i> Save</button>
       </div>
     </div>
   </div>

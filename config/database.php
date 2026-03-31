@@ -1,4 +1,9 @@
 <?php
+    define('DB_HOST', 'sql202.infinityfree.com');
+define('DB_NAME', 'if0_41488179_texsico_db');
+define('DB_USER', 'if0_41488179');
+define('DB_PASS', '3URbHDaNbNXF');
+define('DB_CHARSET', 'utf8mb4');
 $credentialsFile = __DIR__ . '/database.credentials.php';
 if (is_file($credentialsFile)) {
     require_once $credentialsFile;

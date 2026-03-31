@@ -14,3 +14,12 @@ Action still required by project owner:
 - Create config/database.credentials.php on the deployment server with your real DB values.
 - Rotate the previous database password if that old ZIP was shared publicly, because the old config/database.php contained live credentials.
 - Keep uploads writable, but never commit real uploaded media to GitHub.
+
+
+March 26 follow-up hardening:
+- Added same-origin enforcement for CSRF-protected requests and rejected cross-origin preflights.
+- Added CSRF protection to chat polling because it marks messages read.
+- Locked uploaded media behind authentication; chat and voice media now require conversation ownership.
+- Disabled direct web access to assets/uploads via .htaccess and secured legacy serve.php.
+- Normalized text inputs server-side before validation/storage for login, registration, profile, posts, comments, chat, and search.
+- Added client-side maxlength guards for chat input and profile bio.

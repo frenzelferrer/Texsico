@@ -39,6 +39,106 @@ if (!function_exists('apply_security_headers')) {
     }
 }
 
+if (!function_exists('app_strlen')) {
+    function app_strlen(string $value): int {
+        return function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
+    }
+}
+
+if (!function_exists('app_substr')) {
+    function app_substr(string $value, int $start, ?int $length = null): string {
+        if (function_exists('mb_substr')) {
+            return $length === null ? mb_substr($value, $start, null, 'UTF-8') : mb_substr($value, $start, $length, 'UTF-8');
+        }
+        return $length === null ? substr($value, $start) : substr($value, $start, $length);
+    }
+}
+
+if (!function_exists('app_strtolower')) {
+    function app_strtolower(string $value): string {
+        return function_exists('mb_strtolower') ? mb_strtolower($value, 'UTF-8') : strtolower($value);
+    }
+}
+
+if (!function_exists('app_normalize_single_line')) {
+    function app_normalize_single_line(string $value, int $maxLen = 255): string {
+        $value = str_replace(["\r", "\n", "\t"], ' ', $value);
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', '', $value) ?? '';
+        $value = trim((string)(preg_replace('/\s{2,}/u', ' ', $value) ?? $value));
+        return app_substr($value, 0, max(0, $maxLen));
+    }
+}
+
+if (!function_exists('app_normalize_multiline')) {
+    function app_normalize_multiline(string $value, int $maxLen = 1000): string {
+        $value = str_replace(["\r\n", "\r"], "\n", $value);
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', '', $value) ?? '';
+        $value = trim($value);
+        return app_substr($value, 0, max(0, $maxLen));
+    }
+}
+
+if (!function_exists('app_current_origin')) {
+    function app_current_origin(): string {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = preg_replace('/[^A-Za-z0-9.:-]/', '', $_SERVER['HTTP_HOST'] ?? 'localhost');
+        return $scheme . '://' . ($host ?: 'localhost');
+    }
+}
+
+if (!function_exists('app_origin_matches_current')) {
+    function app_origin_matches_current(string $originOrUrl): bool {
+        $parts = parse_url(trim($originOrUrl));
+        if (!$parts || empty($parts['scheme']) || empty($parts['host'])) {
+            return false;
+        }
+
+        $origin = strtolower($parts['scheme']) . '://' . strtolower($parts['host']);
+        if (!empty($parts['port'])) {
+            $origin .= ':' . (int)$parts['port'];
+        }
+
+        return hash_equals(strtolower(app_current_origin()), $origin);
+    }
+}
+
+if (!function_exists('ensure_same_origin_request')) {
+    function ensure_same_origin_request(): void {
+        $origin = trim((string)($_SERVER['HTTP_ORIGIN'] ?? ''));
+        if ($origin !== '') {
+            if (!app_origin_matches_current($origin)) {
+                http_response_code(403);
+                exit('Cross-origin request blocked.');
+            }
+            return;
+        }
+
+        $referer = trim((string)($_SERVER['HTTP_REFERER'] ?? ''));
+        if ($referer !== '' && !app_origin_matches_current($referer)) {
+            http_response_code(403);
+            exit('Cross-origin request blocked.');
+        }
+    }
+}
+
+if (!function_exists('reject_cross_origin_preflight')) {
+    function reject_cross_origin_preflight(): void {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'OPTIONS') {
+            return;
+        }
+
+        $origin = trim((string)($_SERVER['HTTP_ORIGIN'] ?? ''));
+        if ($origin !== '' && !app_origin_matches_current($origin)) {
+            http_response_code(403);
+            exit('Cross-origin request blocked.');
+        }
+
+        header('Allow: GET, POST, OPTIONS');
+        http_response_code(204);
+        exit;
+    }
+}
+
 if (!function_exists('format_chat_time')) {
     function format_chat_time(string $datetime): string {
         try {
@@ -227,7 +327,7 @@ if (!function_exists('remove_uploaded_asset')) {
 }
 
 if (!function_exists('stream_uploaded_asset')) {
-    function stream_uploaded_asset(string $path, int $maxAge = 604800): void {
+    function stream_uploaded_asset(string $path, int $maxAge = 604800, bool $privateCache = false): void {
         $mime = mime_content_type($path) ?: 'application/octet-stream';
         $allowed = [
             'image/jpeg', 'image/png', 'image/gif', 'image/webp',
@@ -240,7 +340,17 @@ if (!function_exists('stream_uploaded_asset')) {
 
         $etag = '"' . sha1($path . '|' . (string)filesize($path) . '|' . (string)filemtime($path)) . '"';
         header('Content-Type: ' . $mime);
-        header('Cache-Control: public, max-age=' . max(3600, $maxAge) . ', immutable');
+        if ($privateCache) {
+            if ($maxAge <= 0) {
+                header('Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0');
+                header('Pragma: no-cache');
+                header('Expires: 0');
+            } else {
+                header('Cache-Control: private, max-age=' . max(0, $maxAge));
+            }
+        } else {
+            header('Cache-Control: public, max-age=' . max(3600, $maxAge) . ', immutable');
+        }
         header('ETag: ' . $etag);
         header('Content-Length: ' . (string)filesize($path));
         header('Accept-Ranges: bytes');
@@ -252,5 +362,62 @@ if (!function_exists('stream_uploaded_asset')) {
 
         readfile($path);
         exit;
+    }
+}
+
+
+if (!function_exists('app_time_ago')) {
+    function app_time_ago(string $datetime): string {
+        try {
+            $now = new DateTime();
+            $ago = new DateTime($datetime);
+            $diff = $now->getTimestamp() - $ago->getTimestamp();
+            if ($diff < 60) return 'just now';
+            if ($diff < 3600) return floor($diff / 60) . 'm ago';
+            if ($diff < 86400) return floor($diff / 3600) . 'h ago';
+            if ($diff < 604800) return floor($diff / 86400) . 'd ago';
+            return $ago->format('M j');
+        } catch (Throwable $e) {
+            return $datetime;
+        }
+    }
+}
+
+if (!function_exists('friend_action_button')) {
+    function friend_action_button(int $otherUserId, string $state, bool $compact = false): string {
+        if ($otherUserId <= 0 || $state === 'self') {
+            return '';
+        }
+
+        $btnClass = $compact ? 'btn btn-sm' : 'btn';
+        $label = 'Add Friend';
+        $icon = 'fa-solid fa-user-plus';
+        $page = 'friend.request';
+
+        if ($state === 'accepted') {
+            $label = 'Friends';
+            $icon = 'fa-solid fa-user-check';
+            $page = 'friend.remove';
+            $btnClass .= ' btn-ghost';
+        } elseif ($state === 'incoming_pending') {
+            $label = 'Accept';
+            $icon = 'fa-solid fa-user-check';
+            $page = 'friend.accept';
+            $btnClass .= ' btn-primary';
+        } elseif ($state === 'outgoing_pending') {
+            $label = 'Requested';
+            $icon = 'fa-regular fa-clock';
+            $page = 'friend.remove';
+            $btnClass .= ' btn-ghost';
+        } else {
+            $btnClass .= ' btn-primary';
+        }
+
+        return '<form method="POST" action="index.php?page=' . htmlspecialchars($page, ENT_QUOTES, 'UTF-8') . '" class="friend-action-form">'
+            . csrf_input()
+            . '<input type="hidden" name="user_id" value="' . (int)$otherUserId . '">'
+            . '<button type="submit" class="' . htmlspecialchars(trim($btnClass), ENT_QUOTES, 'UTF-8') . '">'
+            . '<i class="' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '"></i> ' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8')
+            . '</button></form>';
     }
 }

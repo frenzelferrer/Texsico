@@ -3,8 +3,8 @@
 -- Database Schema
 -- ============================================
 
-CREATE DATABASE IF NOT EXISTS texsico_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE texsico_db;
+CREATE DATABASE IF NOT EXISTS if0_41488179_texsico_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE if0_41488179_texsico_db;
 
 -- Users table
 CREATE TABLE users (
@@ -60,10 +60,46 @@ CREATE TABLE messages (
     message_type ENUM('text','image','voice') NOT NULL DEFAULT 'text',
     media_file VARCHAR(255) DEFAULT NULL,
     media_duration INT DEFAULT NULL,
+    reply_to_message_id INT DEFAULT NULL,
     is_read TINYINT(1) DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_messages_pair_sender (sender_id, receiver_id, id),
+    INDEX idx_messages_pair_receiver (receiver_id, sender_id, id),
+    INDEX idx_messages_receiver_read (receiver_id, is_read, id),
+    INDEX idx_messages_reply_to (reply_to_message_id),
     FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reply_to_message_id) REFERENCES messages(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+
+-- Friendships / follow requests table
+CREATE TABLE friendships (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_one_id INT NOT NULL,
+    user_two_id INT NOT NULL,
+    requested_by INT NOT NULL,
+    status ENUM('pending','accepted') NOT NULL DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_friend_pair (user_one_id, user_two_id),
+    FOREIGN KEY (user_one_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_two_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Notifications table
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    actor_id INT NOT NULL,
+    type VARCHAR(40) NOT NULL,
+    resource_id INT DEFAULT NULL,
+    message VARCHAR(255) NOT NULL,
+    is_read TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- Sample Users (passwords: "password123" hashed)
@@ -90,8 +126,18 @@ INSERT INTO comments (post_id, user_id, content, created_at) VALUES
 INSERT INTO likes (post_id, user_id) VALUES
 (1, 2), (1, 3), (2, 1), (2, 3), (3, 1), (3, 2), (4, 2), (4, 3);
 
+-- Sample Friendships
+INSERT INTO friendships (user_one_id, user_two_id, requested_by, status) VALUES
+(1, 2, 1, 'accepted'),
+(1, 3, 3, 'pending');
+
 -- Sample Messages
 INSERT INTO messages (sender_id, receiver_id, message, is_read, created_at) VALUES
 (1, 2, 'Hey Mia! Loved your latest post 💙', 1, NOW() - INTERVAL 3 HOUR),
 (2, 1, 'Thanks Alex! Means a lot 😊', 1, NOW() - INTERVAL 2 HOUR),
 (2, 1, 'By the way, saw your project - amazing work!', 0, NOW() - INTERVAL 1 HOUR);
+
+-- Sample Notifications
+INSERT INTO notifications (user_id, actor_id, type, resource_id, message, is_read, created_at) VALUES
+(1, 2, 'post_comment', 1, 'commented on your post.', 0, NOW() - INTERVAL 30 MINUTE),
+(2, 1, 'friend_accept', 1, 'is now your friend.', 1, NOW() - INTERVAL 2 HOUR);

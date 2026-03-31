@@ -10,14 +10,26 @@ unset($_SESSION['errors'], $_SESSION['error']);
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign In — Texsico</title>
 
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#355cff">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script>(function(){var m=localStorage.getItem('texsico_theme_mode')||'auto';var d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.dataset.theme=(m==='light'||m==='dark')?m:(d?'dark':'light');document.documentElement.dataset.themeMode=m;})();</script>
 <link rel="stylesheet" href="assets/css/auth.css?v=<?= asset_version('assets/css/auth.css') ?>">
+<script defer src="assets/js/theme.js?v=<?= asset_version('assets/js/theme.js') ?>"></script>
 </head>
 <body>
 <div class="auth-page">
   <div class="auth-left">
     <div class="auth-left-content">
-      <div class="auth-logo-big">Tex<span>s</span>ico</div>
+      <div class="auth-logo-big"><img src="favicon-32x32.png" alt="Texsico logo" class="auth-logo-icon"><strong class="auth-logo-word">Tex<span>s</span>ico</strong></div>
       <p class="auth-tagline">A calm, modern space for posts, conversations, and quick updates.</p>
       <div class="auth-features">
         <div class="auth-feature">
@@ -39,7 +51,7 @@ unset($_SESSION['errors'], $_SESSION['error']);
     <div class="auth-form-box">
       <div class="auth-mobile-shell">
   <div class="auth-mobile-brand">
-    <div class="auth-mobile-logo">Tex<span>s</span>ico</div>
+    <div class="auth-mobile-logo"><img src="favicon-32x32.png" alt="Texsico logo" class="auth-mobile-logo-icon"><strong class="auth-mobile-word">Tex<span>s</span>ico</strong></div>
     <div class="auth-mobile-note"><i class="fa-solid fa-comments"></i> Built for smooth conversations</div>
   </div>
 

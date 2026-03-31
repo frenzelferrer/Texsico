@@ -6,9 +6,12 @@
   </div>
 
   <div class="footer-credit">
-    Developed by Group 2 | BSIT-2 Section 2
+    Developed by Group 2 | BSIT 2 Section 2
   </div>
 </footer>
+    
+    <!-- Special Mention: Christian, Thomas, Ethyl, Rainer, Abad -->
+
 
 </div>
 </body>

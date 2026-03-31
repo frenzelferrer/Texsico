@@ -40,6 +40,10 @@ $coverImage = coverUrlP($profileUser['cover_photo'] ?? null);
 
 <div class="app-layout">
   <aside class="sidebar">
+    <a href="index.php?page=feed" class="sidebar-brand">
+      <img src="favicon-32x32.png" alt="Texsico logo" class="sidebar-brand-icon">
+      <span class="sidebar-brand-text">Texsico</span>
+    </a>
     <a href="index.php?page=profile" class="sidebar-profile">
       <img decoding="async" loading="lazy" src="<?= avatarUrlP($currentAvatar, $currentFullName) ?>" alt="You" class="avatar avatar-sm">
       <div>
@@ -55,12 +59,17 @@ $coverImage = coverUrlP($profileUser['cover_photo'] ?? null);
       <li><a href="index.php?page=chat"><span class="menu-icon"><i class="fa-regular fa-message"></i></span> Messages</a></li>
     </ul>
     <div class="sidebar-divider"></div>
-    <form action="index.php?page=logout" method="POST" class="logout-inline-form">
-      <?= csrf_input() ?>
-      <button type="submit" class="logout-btn">
-        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
-      </button>
-    </form>
+    <form action="index.php?page=logout" method="POST" class="logout-ux-form">
+  <?= csrf_input() ?>
+  <button type="submit" class="logout-ux-btn" aria-label="Logout">
+    <span class="logout-ux-sign" aria-hidden="true">
+      <svg viewBox="0 0 512 512">
+        <path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"></path>
+      </svg>
+    </span>
+    <span class="logout-ux-text">Logout</span>
+  </button>
+</form>
   </aside>
 
   <main class="main-content page-shell" style="padding:0 0 40px;">
@@ -97,15 +106,18 @@ $coverImage = coverUrlP($profileUser['cover_photo'] ?? null);
               <div class="profile-bio"><?= nl2br(htmlspecialchars($profileUser['bio'])) ?></div>
             <?php endif; ?>
            
-          <div style="display:flex; gap:8px; margin-top:8px;">
+          <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
             <?php if ($isOwnProfile): ?>
               <button class="btn btn-ghost btn-sm" onclick="document.getElementById('editProfileModal').classList.add('open')">
                 <i class="fa-solid fa-pen"></i> Edit Profile
               </button>
             <?php else: ?>
-              <a href="index.php?page=chat&with=<?= $profileUser['id'] ?>" class="btn btn-primary btn-sm">
-                <i class="fa-solid fa-message"></i> Message
-              </a>
+              <?= friend_action_button((int)$profileUser['id'], $friendshipState ?? 'none', true) ?>
+              <?php if (($friendshipState ?? 'none') === 'accepted'): ?>
+                <a href="index.php?page=chat&with=<?= $profileUser['id'] ?>" class="btn btn-primary btn-sm">
+                  <i class="fa-solid fa-message"></i> Message
+                </a>
+              <?php endif; ?>
             <?php endif; ?>
           </div>
         </div>
@@ -135,7 +147,13 @@ $coverImage = coverUrlP($profileUser['cover_photo'] ?? null);
           </div>
         </div>
       <?php endif; ?>
-      <?php if (empty($posts)): ?>
+      <?php if (!$canViewPosts): ?>
+        <div class="card locked-profile-card">
+          <i class="fa-solid fa-lock"></i>
+          <p><strong>Posts are private until you become friends.</strong></p>
+          <span>Send a request first. After it is accepted, you can view posts and start chatting here.</span>
+        </div>
+      <?php elseif (empty($posts)): ?>
         <div style="text-align:center; padding:60px; color:var(--text-muted);">
           <i class="fa-regular fa-newspaper" style="font-size:48px; display:block; margin-bottom:16px; opacity:0.3;"></i>
           <p style="font-size:18px; font-weight:600;">No posts yet</p>
@@ -233,7 +251,7 @@ $coverImage = coverUrlP($profileUser['cover_photo'] ?? null);
       <div class="side-info-list">
         <div class="side-info-item"><i class="fa-solid fa-at" style="color:var(--accent);width:16px;"></i><span><?= htmlspecialchars($profileUser['username']) ?></span></div>
         <div class="side-info-item"><i class="fa-regular fa-calendar" style="color:var(--accent4);width:16px;"></i><span>Joined <?= (new DateTime($profileUser['created_at']))->format('F Y') ?></span></div>
-        <div class="side-info-item"><i class="fa-regular fa-newspaper" style="color:var(--accent2);width:16px;"></i><span><?= count($posts) ?> post<?= count($posts) !== 1 ? 's' : '' ?></span></div>
+        <div class="side-info-item"><i class="fa-solid fa-user-group" style="color:var(--accent2);width:16px;"></i><span><?= (int)($friendCount ?? 0) ?> friend<?= (int)($friendCount ?? 0) !== 1 ? 's' : '' ?></span></div>
       </div>
     </div>
   </aside>
@@ -267,7 +285,7 @@ $coverImage = coverUrlP($profileUser['cover_photo'] ?? null);
         </div>
         <div class="form-group">
           <label class="form-label">Bio</label>
-          <textarea name="bio" class="form-control" rows="3" data-autogrow="true" data-max-height="180" placeholder="Tell the world about yourself…"><?= htmlspecialchars($profileUser['bio'] ?? '') ?></textarea>
+          <textarea name="bio" class="form-control" rows="3" data-autogrow="true" data-max-height="180" maxlength="300" placeholder="Tell the world about yourself…"><?= htmlspecialchars($profileUser['bio'] ?? '') ?></textarea>
         </div>
         <div class="form-group">
           <label class="form-label">Cover Photo</label>

@@ -3,20 +3,82 @@ require_once __DIR__ . '/../../config/database.php';
 
 class MessageModel {
     private PDO $db;
+    private ?bool $hasReplyColumn = null;
 
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
     }
 
+    private function hasReplyColumn(): bool {
+        if ($this->hasReplyColumn !== null) {
+            return $this->hasReplyColumn;
+        }
+
+        try {
+            $stmt = $this->db->query("SHOW COLUMNS FROM messages LIKE 'reply_to_message_id'");
+            $this->hasReplyColumn = (bool)$stmt->fetch();
+        } catch (Throwable $e) {
+            $this->hasReplyColumn = false;
+        }
+
+        return $this->hasReplyColumn;
+    }
+
+    private function replySelectColumns(): string {
+        if ($this->hasReplyColumn()) {
+            return "rm.id AS reply_id,
+                    rm.sender_id AS reply_sender_id,
+                    ru.full_name AS reply_sender_name,
+                    rm.message_type AS reply_message_type,
+                    rm.message AS reply_message,
+                    rm.media_file AS reply_media_file,
+                    rm.media_duration AS reply_media_duration";
+        }
+
+        return "NULL AS reply_id,
+                    NULL AS reply_sender_id,
+                    NULL AS reply_sender_name,
+                    NULL AS reply_message_type,
+                    NULL AS reply_message,
+                    NULL AS reply_media_file,
+                    NULL AS reply_media_duration";
+    }
+
+    private function replyJoinSql(): string {
+        if (!$this->hasReplyColumn()) {
+            return '';
+        }
+
+        return "
+             LEFT JOIN messages rm ON m.reply_to_message_id = rm.id
+             LEFT JOIN users ru ON rm.sender_id = ru.id";
+    }
+
+    private function conversationSelectColumns(): string {
+        return "m.*,
+                    su.username AS sender_username,
+                    su.full_name AS sender_name,
+                    su.profile_image AS sender_image,
+                    " . $this->replySelectColumns();
+    }
+
+    private function hydrateMessages(array $rows): array {
+        foreach ($rows as &$row) {
+            $row['time_formatted'] = format_chat_time((string)($row['created_at'] ?? ''));
+            if (empty($row['reply_id'])) {
+                $row['reply_id'] = null;
+            }
+        }
+        unset($row);
+        return $rows;
+    }
+
     public function getConversation(int $userId, int $otherId): array {
         $stmt = $this->db->prepare(
             "SELECT * FROM (
-                SELECT m.*,
-                    su.username AS sender_username,
-                    su.full_name AS sender_name,
-                    su.profile_image AS sender_image
+                SELECT " . $this->conversationSelectColumns() . "
                 FROM messages m
-                JOIN users su ON m.sender_id = su.id
+                JOIN users su ON m.sender_id = su.id" . $this->replyJoinSql() . "
                 WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
                 ORDER BY m.id DESC
                 LIMIT 120
@@ -24,28 +86,38 @@ class MessageModel {
             ORDER BY recent.id ASC"
         );
         $stmt->execute([$userId, $otherId, $otherId, $userId]);
-        $rows = $stmt->fetchAll();
-        foreach ($rows as &$row) {
-            $row['time_formatted'] = format_chat_time((string)$row['created_at']);
-        }
-        unset($row);
-        return $rows;
+        return $this->hydrateMessages($stmt->fetchAll());
     }
 
-    public function send(int $senderId, int $receiverId, string $message): int {
-        $stmt = $this->db->prepare(
-            "INSERT INTO messages (sender_id, receiver_id, message, message_type) VALUES (?, ?, ?, 'text')"
-        );
-        $stmt->execute([$senderId, $receiverId, $message]);
+    public function send(int $senderId, int $receiverId, string $message, ?int $replyToMessageId = null): int {
+        if ($this->hasReplyColumn()) {
+            $stmt = $this->db->prepare(
+                "INSERT INTO messages (sender_id, receiver_id, message, message_type, reply_to_message_id) VALUES (?, ?, ?, 'text', ?)"
+            );
+            $stmt->execute([$senderId, $receiverId, $message, $replyToMessageId]);
+        } else {
+            $stmt = $this->db->prepare(
+                "INSERT INTO messages (sender_id, receiver_id, message, message_type) VALUES (?, ?, ?, 'text')"
+            );
+            $stmt->execute([$senderId, $receiverId, $message]);
+        }
         return (int) $this->db->lastInsertId();
     }
 
-    public function sendMedia(int $senderId, int $receiverId, string $messageType, string $mediaFile, ?int $duration = null): int {
-        $stmt = $this->db->prepare(
-            "INSERT INTO messages (sender_id, receiver_id, message, message_type, media_file, media_duration)
-             VALUES (?, ?, '', ?, ?, ?)"
-        );
-        $stmt->execute([$senderId, $receiverId, $messageType, $mediaFile, $duration]);
+    public function sendMedia(int $senderId, int $receiverId, string $messageType, string $mediaFile, ?int $duration = null, ?int $replyToMessageId = null): int {
+        if ($this->hasReplyColumn()) {
+            $stmt = $this->db->prepare(
+                "INSERT INTO messages (sender_id, receiver_id, message, message_type, media_file, media_duration, reply_to_message_id)
+                 VALUES (?, ?, '', ?, ?, ?, ?)"
+            );
+            $stmt->execute([$senderId, $receiverId, $messageType, $mediaFile, $duration, $replyToMessageId]);
+        } else {
+            $stmt = $this->db->prepare(
+                "INSERT INTO messages (sender_id, receiver_id, message, message_type, media_file, media_duration)
+                 VALUES (?, ?, '', ?, ?, ?)"
+            );
+            $stmt->execute([$senderId, $receiverId, $messageType, $mediaFile, $duration]);
+        }
         return (int)$this->db->lastInsertId();
     }
 
@@ -91,6 +163,8 @@ class MessageModel {
              ) conv
              JOIN messages lm ON lm.id = conv.last_message_id
              JOIN users u ON u.id = conv.partner_id
+             JOIN friendships f ON f.status = 'accepted'
+                AND ((f.user_one_id = ? AND f.user_two_id = u.id) OR (f.user_two_id = ? AND f.user_one_id = u.id))
              LEFT JOIN (
                 SELECT sender_id, COUNT(*) AS unread
                 FROM messages
@@ -99,7 +173,7 @@ class MessageModel {
              ) unread_counts ON unread_counts.sender_id = u.id
              ORDER BY lm.created_at DESC, lm.id DESC"
         );
-        $stmt->execute([$userId, $userId, $userId, $userId, $userId]);
+        $stmt->execute([$userId, $userId, $userId, $userId, $userId, $userId, $userId]);
         $rows = $stmt->fetchAll();
         foreach ($rows as &$row) {
             $row['last_time'] = format_chat_time((string)$row['last_created_at']);
@@ -110,20 +184,15 @@ class MessageModel {
 
     public function getNewMessages(int $userId, int $otherId, int $lastId): array {
         $stmt = $this->db->prepare(
-            "SELECT m.*, su.username AS sender_username, su.profile_image AS sender_image
+            "SELECT " . $this->conversationSelectColumns() . "
              FROM messages m
-             JOIN users su ON m.sender_id = su.id
+             JOIN users su ON m.sender_id = su.id" . $this->replyJoinSql() . "
              WHERE m.id > ?
                AND ((m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?))
              ORDER BY m.created_at ASC, m.id ASC"
         );
         $stmt->execute([$lastId, $userId, $otherId, $otherId, $userId]);
-        $rows = $stmt->fetchAll();
-        foreach ($rows as &$row) {
-            $row['time_formatted'] = format_chat_time((string)$row['created_at']);
-        }
-        unset($row);
-        return $rows;
+        return $this->hydrateMessages($stmt->fetchAll());
     }
 
     public function getSharedImages(int $userId, int $otherId, int $limit = 6): array {
@@ -179,5 +248,57 @@ class MessageModel {
         $stmt->execute([$messageId]);
         $result = $stmt->fetch();
         return $result ?: null;
+    }
+
+    public function getMessageByIdForUser(int $messageId, int $userId): ?array {
+        $sql = "SELECT m.*,
+                    " . $this->replySelectColumns() . "
+             FROM messages m";
+
+        if ($this->hasReplyColumn()) {
+            $sql .= "
+             LEFT JOIN messages rm ON m.reply_to_message_id = rm.id
+             LEFT JOIN users ru ON rm.sender_id = ru.id";
+        }
+
+        $sql .= "
+             WHERE m.id = ? AND (m.sender_id = ? OR m.receiver_id = ?)
+             LIMIT 1";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$messageId, $userId, $userId]);
+        $result = $stmt->fetch();
+        return $result ?: null;
+    }
+
+    public function findConversationMessageForUser(int $userId, int $otherId, int $messageId): ?array {
+        $stmt = $this->db->prepare(
+            "SELECT m.*,
+                    su.full_name AS sender_name
+             FROM messages m
+             JOIN users su ON m.sender_id = su.id
+             WHERE m.id = ?
+               AND ((m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?))
+             LIMIT 1"
+        );
+        $stmt->execute([$messageId, $userId, $otherId, $otherId, $userId]);
+        $result = $stmt->fetch();
+        return $result ?: null;
+    }
+
+    public function userCanAccessMedia(int $userId, string $mediaFile, string $messageType): bool {
+        $stmt = $this->db->prepare(
+            "SELECT 1
+             FROM messages m
+             JOIN friendships f ON f.status = 'accepted'
+                AND ((f.user_one_id = m.sender_id AND f.user_two_id = m.receiver_id)
+                     OR (f.user_two_id = m.sender_id AND f.user_one_id = m.receiver_id))
+             WHERE m.media_file = ?
+               AND m.message_type = ?
+               AND (m.sender_id = ? OR m.receiver_id = ?)
+             LIMIT 1"
+        );
+        $stmt->execute([basename($mediaFile), $messageType, $userId, $userId]);
+        return (bool)$stmt->fetchColumn();
     }
 }

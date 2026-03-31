@@ -5,6 +5,21 @@ $currentFullName   = $_SESSION['full_name'] ?? '';
 $currentAvatar     = $_SESSION['profile_image'] ?? 'default.png';
 
 $unreadMsgCount = isset($unreadMsgCount) ? (int)$unreadMsgCount : 0;
+$headerNotifications = [];
+$headerNotifUnreadCount = 0;
+$headerPendingRequests = [];
+$headerPendingCount = 0;
+
+if ($currentUserId) {
+    require_once BASE_PATH . '/app/models/NotificationModel.php';
+    require_once BASE_PATH . '/app/models/FriendshipModel.php';
+    $headerNotificationModel = new NotificationModel();
+    $headerFriendshipModel = new FriendshipModel();
+    $headerNotifications = $headerNotificationModel->getRecentForUser((int)$currentUserId, 8);
+    $headerNotifUnreadCount = $headerNotificationModel->getUnreadCount((int)$currentUserId);
+    $headerPendingRequests = $headerFriendshipModel->getPendingIncomingRequests((int)$currentUserId, 6);
+    $headerPendingCount = $headerFriendshipModel->getPendingIncomingCount((int)$currentUserId);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -17,15 +32,19 @@ $unreadMsgCount = isset($unreadMsgCount) ? (int)$unreadMsgCount : 0;
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#0f172a">
+<meta name="theme-color" content="#355cff">
 <link rel="manifest" href="/site.webmanifest">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Texsico — Minimal Social Messaging</title>
+  <title>Texsico — Mini Social Messaging</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <script>document.documentElement.dataset.theme = localStorage.getItem('texsico_theme') || 'dark';</script>
+  <script>(function(){var m=localStorage.getItem('texsico_theme_mode')||'auto';var d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.dataset.theme=(m==='light'||m==='dark')?m:(d?'dark':'light');document.documentElement.dataset.themeMode=m;})();</script>
   <link rel="stylesheet" href="assets/css/app.css?v=<?= asset_version('assets/css/app.css') ?>">
+  <script defer src="assets/js/theme.js?v=<?= asset_version('assets/js/theme.js') ?>"></script>
 </head>
 
 <body class="page-<?= htmlspecialchars((string)($page ?? 'app'), ENT_QUOTES, 'UTF-8') ?>">
@@ -36,9 +55,74 @@ $unreadMsgCount = isset($unreadMsgCount) ? (int)$unreadMsgCount : 0;
   <?php endif; ?>
 
 
-  <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle light mode">
-    <i class="fa-solid fa-moon"></i>
-  </button>
+  <div class="floating-action-stack">
+    <?php if ($currentUserId): ?>
+      <button type="button" class="notification-toggle-btn" id="notificationToggleBtn" aria-label="Open notifications">
+        <i class="fa-regular fa-bell"></i>
+        <?php if (($headerNotifUnreadCount + $headerPendingCount) > 0): ?>
+          <span class="floating-badge" id="notificationBadge"><?= (int)($headerNotifUnreadCount + $headerPendingCount) ?></span>
+        <?php endif; ?>
+      </button>
+    <?php endif; ?>
+    <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle theme">
+      <i class="fa-solid fa-circle-half-stroke"></i>
+    </button>
+  </div>
+
+  <?php if ($currentUserId): ?>
+    <aside class="notification-drawer" id="notificationDrawer" aria-hidden="true">
+      <div class="notification-drawer-header">
+        <div>
+          <div class="notification-drawer-kicker">Activity</div>
+          <div class="notification-drawer-title">Notifications</div>
+        </div>
+        <button type="button" class="notification-close-btn" onclick="closeNotificationDrawer()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <?php if (!empty($headerPendingRequests)): ?>
+        <div class="notification-group-label">Friend requests</div>
+        <div class="notification-request-list">
+          <?php foreach ($headerPendingRequests as $requestUser): ?>
+            <div class="notification-request-item">
+              <img decoding="async" loading="lazy" src="<?= (!empty($requestUser['profile_image']) && $requestUser['profile_image'] !== 'default.png') ? 'index.php?asset=avatar&f=' . urlencode($requestUser['profile_image']) : default_avatar_data_uri($requestUser['full_name'] ?: $requestUser['username'], 96) ?>" alt="" class="notification-avatar">
+              <div class="notification-copy">
+                <strong><?= htmlspecialchars($requestUser['full_name']) ?></strong>
+                <span>@<?= htmlspecialchars($requestUser['username']) ?></span>
+              </div>
+              <?= friend_action_button((int)$requestUser['id'], 'incoming_pending', true) ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
+      <div class="notification-group-label">Recent activity</div>
+      <div class="notification-list">
+        <?php if (!empty($headerNotifications)): ?>
+          <?php foreach ($headerNotifications as $note): ?>
+            <?php
+              $noteLink = 'index.php?page=profile&id=' . (int)$note['actor_id'];
+              if (in_array($note['type'], ['post_like', 'post_comment'], true) && !empty($note['resource_id'])) {
+                  $noteLink = 'index.php?page=feed#post-' . (int)$note['resource_id'];
+              }
+            ?>
+            <a href="<?= htmlspecialchars($noteLink) ?>" class="notification-item <?= !empty($note['is_read']) ? '' : 'is-unread' ?>">
+              <img decoding="async" loading="lazy" src="<?= (!empty($note['actor_image']) && $note['actor_image'] !== 'default.png') ? 'index.php?asset=avatar&f=' . urlencode($note['actor_image']) : default_avatar_data_uri($note['actor_name'] ?: $note['actor_username'], 96) ?>" alt="" class="notification-avatar">
+              <div class="notification-copy">
+                <strong><?= htmlspecialchars($note['actor_name']) ?></strong>
+                <span><?= htmlspecialchars($note['message']) ?></span>
+                <small><?= htmlspecialchars(app_time_ago((string)$note['created_at'])) ?></small>
+              </div>
+            </a>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <div class="notification-empty-state">
+            <i class="fa-regular fa-bell-slash"></i>
+            <span>No notifications yet.</span>
+          </div>
+        <?php endif; ?>
+      </div>
+    </aside>
+  <?php endif; ?>
 
   <div class="modal-overlay" id="confirmModal">
     <div class="modal" style="max-width:420px;">
@@ -145,8 +229,9 @@ $unreadMsgCount = isset($unreadMsgCount) ? (int)$unreadMsgCount : 0;
       const avatarBtn = document.getElementById('navAvatarBtn');
       const dropdown = document.getElementById('navDropdown');
       const themeBtn = document.getElementById('themeToggleBtn');
-      const theme = document.documentElement.dataset.theme || 'dark';
-      updateThemeIcon(theme);
+      const notificationBtn = document.getElementById('notificationToggleBtn');
+      const notificationDrawer = document.getElementById('notificationDrawer');
+      if (typeof applySavedThemeMode === 'function') { applySavedThemeMode(); }
 
       if (avatarBtn && dropdown) {
         avatarBtn.addEventListener('click', function(e) {
@@ -160,6 +245,24 @@ $unreadMsgCount = isset($unreadMsgCount) ? (int)$unreadMsgCount : 0;
 
       if (themeBtn) {
         themeBtn.addEventListener('click', toggleThemeMode);
+      }
+
+      if (notificationBtn && notificationDrawer) {
+        notificationBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          notificationDrawer.classList.toggle('open');
+          if (notificationDrawer.classList.contains('open')) {
+            markNotificationsRead();
+          }
+        });
+
+        notificationDrawer.addEventListener('click', function(e) {
+          e.stopPropagation();
+        });
+
+        document.addEventListener('click', function() {
+          notificationDrawer.classList.remove('open');
+        });
       }
 
       document.addEventListener('click', function(e) {
@@ -193,19 +296,6 @@ $unreadMsgCount = isset($unreadMsgCount) ? (int)$unreadMsgCount : 0;
       window.visualViewport.addEventListener('scroll', refreshViewportUnit, { passive: true });
     }
 
-    function toggleThemeMode() {
-      const next = (document.documentElement.dataset.theme || 'dark') === 'dark' ? 'light' : 'dark';
-      document.documentElement.dataset.theme = next;
-      localStorage.setItem('texsico_theme', next);
-      updateThemeIcon(next);
-      showToast(next === 'light' ? 'Light mode enabled.' : 'Dark mode enabled.', 'success');
-    }
-
-    function updateThemeIcon(theme) {
-      const icon = document.querySelector('#themeToggleBtn i');
-      if (!icon) return;
-      icon.className = theme === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-    }
 
     function defaultAvatarUrl(name, size = 128) {
       name = (name || 'Texsico User').trim() || 'Texsico User';
@@ -251,6 +341,24 @@ $unreadMsgCount = isset($unreadMsgCount) ? (int)$unreadMsgCount : 0;
       const img = document.getElementById('lightboxImage');
       if (img) img.src = '';
       box?.classList.remove('open');
+    }
+
+
+    function closeNotificationDrawer() {
+      document.getElementById('notificationDrawer')?.classList.remove('open');
+    }
+
+    function markNotificationsRead() {
+      const badge = document.getElementById('notificationBadge');
+      if (badge) badge.remove();
+      fetch('index.php?page=notifications.read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `csrf_token=${encodeURIComponent(<?= json_encode(csrf_token()) ?>)}`
+      }).catch(() => {});
     }
 
     function showToast(msg, type = 'success') {

@@ -4,6 +4,8 @@ require_once __DIR__ . '/../models/CommentModel.php';
 require_once __DIR__ . '/../models/LikeModel.php';
 require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../models/MessageModel.php';
+require_once __DIR__ . '/../models/FriendshipModel.php';
+require_once __DIR__ . '/../models/NotificationModel.php';
 
 class PostController {
     private PostModel $postModel;
@@ -11,6 +13,8 @@ class PostController {
     private LikeModel $likeModel;
     private UserModel $userModel;
     private MessageModel $messageModel;
+    private FriendshipModel $friendshipModel;
+    private NotificationModel $notificationModel;
 
     public function __construct() {
         $this->postModel = new PostModel();
@@ -18,6 +22,8 @@ class PostController {
         $this->likeModel = new LikeModel();
         $this->userModel = new UserModel();
         $this->messageModel = new MessageModel();
+        $this->friendshipModel = new FriendshipModel();
+        $this->notificationModel = new NotificationModel();
     }
 
     private function requireAuth(): void {
@@ -41,17 +47,27 @@ class PostController {
     public function showFeed(): void {
         $this->requireAuth();
         $userId = (int)$_SESSION['user_id'];
-        $search = mb_substr(trim($_GET['q'] ?? ''), 0, 100);
+        $search = app_normalize_single_line((string)($_GET['q'] ?? ''), 100);
 
         $posts = $search !== ''
             ? $this->postModel->search($search, $userId)
             : $this->postModel->getAllPosts($userId);
 
         $comments = $this->commentModel->getByPostIds(array_column($posts, 'id'));
-        $storyUsers = $this->userModel->getAllExcept($userId, 8);
-        $suggestedUsers = array_slice($storyUsers, 0, 3);
-        $discoverUsers = $this->userModel->getAllExcept($userId, 6);
+        $storyUsers = $this->friendshipModel->getFriends($userId, 8);
+        $suggestedUsers = $this->userModel->getAllExcept($userId, 12);
+        $discoverUsers = [];
+        $stateMap = $this->friendshipModel->getStateMap($userId, array_column($suggestedUsers, 'id'));
+        foreach ($suggestedUsers as &$candidate) {
+            $candidate['friendship_state'] = $stateMap[(int)$candidate['id']] ?? 'none';
+            if ($candidate['friendship_state'] !== 'accepted') {
+                $discoverUsers[] = $candidate;
+            }
+        }
+        unset($candidate);
+        $discoverUsers = array_slice($discoverUsers, 0, 6);
         $unreadMsgCount = $this->messageModel->getUnreadCount($userId);
+        $friendCount = $this->friendshipModel->getFriendCount($userId);
 
         require __DIR__ . '/../views/feed/index.php';
     }
@@ -70,9 +86,9 @@ class PostController {
         }
 
         $userId = (int)$_SESSION['user_id'];
-        $content = trim($_POST['content'] ?? '');
+        $content = app_normalize_multiline((string)($_POST['content'] ?? ''), 1000);
 
-        if (($content === '' && empty($_FILES['image']['name'])) || mb_strlen($content) > 1000) {
+        if (($content === '' && empty($_FILES['image']['name'])) || app_strlen($content) > 1000) {
             if ($this->isAjax()) {
                 $this->failJson(['success' => false, 'message' => 'Add text or an image.']);
             }
@@ -114,7 +130,7 @@ class PostController {
         verify_csrf_request();
         $userId = (int)$_SESSION['user_id'];
         $postId = (int)($_POST['post_id'] ?? 0);
-        $content = trim($_POST['content'] ?? '');
+        $content = app_normalize_multiline((string)($_POST['content'] ?? ''), 1000);
 
         $post = $this->postModel->getPostById($postId);
         if (!$post || (int)$post['user_id'] !== $userId) {
@@ -124,7 +140,7 @@ class PostController {
             header('Location: index.php?page=feed');
             exit;
         }
-        if ($content === '' || mb_strlen($content) > 1000) {
+        if ($content === '' || app_strlen($content) > 1000) {
             if ($this->isAjax()) {
                 $this->failJson(['success' => false, 'message' => 'Post content is invalid.']);
             }
@@ -177,125 +193,18 @@ class PostController {
         verify_csrf_request();
         $postId = (int)($_POST['post_id'] ?? 0);
         $userId = (int)$_SESSION['user_id'];
-        if ($postId <= 0 || !$this->postModel->getPostById($postId)) {
-            $this->failJson();
+        $post = $this->postModel->getPostById($postId);
+        if ($postId <= 0 || !$post || !$this->postModel->canUserAccessPost($postId, $userId)) {
+            $this->failJson(['success' => false, 'message' => 'Not allowed.'], 403);
         }
         $result = $this->likeModel->toggle($postId, $userId);
+        if (($result['liked'] ?? false) && (int)$post['user_id'] !== $userId) {
+            $this->notificationModel->create((int)$post['user_id'], $userId, 'post_like', $postId, 'liked your post.');
+        }
         header('Content-Type: application/json');
         echo json_encode($result);
         exit;
     }
 
-    public function addComment(): void {
-        $this->requireAuth();
-        verify_csrf_request();
-
-        if (!app_rate_limit('comment_add_' . (int)$_SESSION['user_id'], 25, 300)) {
-            if ($this->isAjax()) {
-                $this->failJson(['success' => false, 'message' => 'You are commenting too quickly.'], 429);
-            }
-            header('Location: index.php?page=feed');
-            exit;
-        }
-
-        $userId = (int)$_SESSION['user_id'];
-        $postId = (int)($_POST['post_id'] ?? 0);
-        $content = trim($_POST['content'] ?? '');
-
-        if ($content === '' || mb_strlen($content) > 1000 || !$this->postModel->getPostById($postId)) {
-            if ($this->isAjax()) {
-                $this->failJson();
-            }
-            header('Location: index.php?page=feed');
-            exit;
-        }
-
-        $commentId = $this->commentModel->create($postId, $userId, $content);
-
-        if ($this->isAjax()) {
-            $comment = $this->commentModel->findById($commentId);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'comment' => $comment]);
-            exit;
-        }
-        header('Location: index.php?page=feed');
-        exit;
-    }
-
-    public function updateComment(): void {
-        $this->requireAuth();
-        verify_csrf_request();
-
-        $userId = (int)$_SESSION['user_id'];
-        $commentId = (int)($_POST['comment_id'] ?? 0);
-        $content = trim($_POST['content'] ?? '');
-
-        if ($commentId <= 0 || $content === '' || mb_strlen($content) > 1000) {
-            if ($this->isAjax()) {
-                $this->failJson(['success' => false, 'message' => 'Comment content is invalid.']);
-            }
-            header('Location: index.php?page=feed');
-            exit;
-        }
-
-        $comment = $this->commentModel->findById($commentId);
-        if (!$comment || (int)$comment['user_id'] !== $userId) {
-            if ($this->isAjax()) {
-                $this->failJson(['success' => false, 'message' => 'Not allowed.'], 403);
-            }
-            header('Location: index.php?page=feed');
-            exit;
-        }
-
-        if (!$this->commentModel->update($commentId, $userId, $content)) {
-            if ($this->isAjax()) {
-                $updated = $this->commentModel->findById($commentId);
-                echo json_encode(['success' => true, 'comment' => $updated]);
-                exit;
-            }
-            header('Location: index.php?page=feed');
-            exit;
-        }
-
-        $updated = $this->commentModel->findById($commentId);
-        if ($this->isAjax()) {
-            header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'comment' => $updated]);
-            exit;
-        }
-        header('Location: index.php?page=feed');
-        exit;
-    }
-
-    public function deleteComment(): void {
-        $this->requireAuth();
-        verify_csrf_request();
-        $userId = (int)$_SESSION['user_id'];
-        $commentId = (int)($_POST['comment_id'] ?? 0);
-        if ($commentId <= 0) {
-            if ($this->isAjax()) {
-                $this->failJson();
-            }
-            header('Location: index.php?page=feed');
-            exit;
-        }
-
-        $comment = $this->commentModel->findById($commentId);
-        if (!$comment || (int)$comment['user_id'] !== $userId) {
-            if ($this->isAjax()) {
-                $this->failJson(['success' => false, 'message' => 'Not allowed.'], 403);
-            }
-            header('Location: index.php?page=feed');
-            exit;
-        }
-
-        $deleted = $this->commentModel->delete($commentId, $userId);
-        if ($this->isAjax()) {
-            header('Content-Type: application/json');
-            echo json_encode(['success' => $deleted]);
-            exit;
-        }
-        header('Location: index.php?page=feed');
-        exit;
-    }
 }
+
