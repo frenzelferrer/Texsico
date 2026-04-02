@@ -99,7 +99,12 @@ unset($_SESSION['errors'], $_SESSION['old']);
         </div>
         <div class="form-group">
           <label class="form-label">Password</label>
-          <input type="password" name="password" id="registerPassword" class="form-control" placeholder="Min. 8 characters" minlength="8" required aria-describedby="passwordRules">
+          <div class="password-field">
+            <input type="password" name="password" id="registerPassword" class="form-control" placeholder="Min. 8 characters" minlength="8" required aria-describedby="passwordRules">
+            <button type="button" class="password-toggle" data-toggle-password="registerPassword" aria-label="Show password" aria-pressed="false" title="Show password">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
           <div class="password-checklist" id="passwordRules" aria-live="polite">
             <div class="password-checklist-title">Use a stronger password:</div>
             <div class="password-rule" data-rule="length">
@@ -118,7 +123,12 @@ unset($_SESSION['errors'], $_SESSION['old']);
         </div>
         <div class="form-group">
           <label class="form-label">Confirm Password</label>
-          <input type="password" name="confirm_password" id="registerConfirmPassword" class="form-control" placeholder="Repeat password" required>
+          <div class="password-field">
+            <input type="password" name="confirm_password" id="registerConfirmPassword" class="form-control" placeholder="Repeat password" required>
+            <button type="button" class="password-toggle" data-toggle-password="registerConfirmPassword" aria-label="Show password" aria-pressed="false" title="Show password">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
           <div class="password-match" id="passwordMatchHint" aria-live="polite"></div>
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:8px; padding:13px;">
@@ -132,6 +142,22 @@ unset($_SESSION['errors'], $_SESSION['old']);
 
 <script>
 (function(){
+  document.querySelectorAll('[data-toggle-password]').forEach(function(button){
+    var inputId = button.getAttribute('data-toggle-password');
+    var input = document.getElementById(inputId);
+    var icon = button.querySelector('i');
+    if (!input || !icon) return;
+
+    button.addEventListener('click', function(){
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      button.setAttribute('title', show ? 'Hide password' : 'Show password');
+      button.setAttribute('aria-pressed', show ? 'true' : 'false');
+      icon.className = 'fa-solid ' + (show ? 'fa-eye-slash' : 'fa-eye');
+    });
+  });
+
   const form = document.getElementById('registerForm');
   const password = document.getElementById('registerPassword');
   const confirm = document.getElementById('registerConfirmPassword');

@@ -4270,3 +4270,26 @@ html[data-theme="light"] .notification-drawer-title {
     bottom: 88px;
   }
 }
+
+
+@media (max-width: 900px) {
+  .app-layout {
+    display: block;
+    grid-template-columns: 1fr !important;
+    max-width: 100%;
+    padding: 10px 10px 84px;
+  }
+
+  .sidebar,
+  .right-sidebar {
+    display: none !important;
+  }
+
+  .main-content,
+  .main-content.page-shell {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}

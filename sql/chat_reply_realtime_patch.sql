@@ -1,10 +1,8 @@
--- Texsico chat reply + live polling patch (safe re-run version)
--- Works even if some indexes already exist from older optimization patches.
+
 
 SET @db := DATABASE();
 
--- 1) reply_to_message_id column
-SET @sql := (
+
     SELECT IF(
         EXISTS(
             SELECT 1
@@ -21,7 +19,6 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- 2) sender/receiver/id index for one direction
 SET @sql := (
     SELECT IF(
         EXISTS(
@@ -39,7 +36,6 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- 3) sender/receiver/id index for reverse direction
 SET @sql := (
     SELECT IF(
         EXISTS(
@@ -57,7 +53,6 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- 4) receiver/read index (skip if it already exists from optimization_patch.sql)
 SET @sql := (
     SELECT IF(
         EXISTS(
@@ -75,7 +70,6 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- 5) reply_to_message_id index
 SET @sql := (
     SELECT IF(
         EXISTS(
@@ -93,7 +87,6 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- 6) self-reference foreign key
 SET @sql := (
     SELECT IF(
         EXISTS(

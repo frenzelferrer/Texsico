@@ -1,5 +1,3 @@
--- Run this once after importing social_app.sql
--- Improves common feed, profile, like/comment, and chat queries on low-cost hosting.
 
 ALTER TABLE users
     ADD INDEX idx_users_full_name (full_name);

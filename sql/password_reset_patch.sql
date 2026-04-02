@@ -1,5 +1,4 @@
 
-
 CREATE TABLE IF NOT EXISTS password_resets (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,

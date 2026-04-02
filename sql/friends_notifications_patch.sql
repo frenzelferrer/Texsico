@@ -1,4 +1,3 @@
--- Run this on existing Texsico databases to add friends-only posts/chat and notifications.
 
 CREATE TABLE IF NOT EXISTS friendships (
     id INT AUTO_INCREMENT PRIMARY KEY,

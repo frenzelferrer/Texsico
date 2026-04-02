@@ -156,6 +156,10 @@ $chatStateClass = $otherUser ? 'has-chat-selected' : 'show-list';
   .msg-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; display: block; flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); }
   .msg-bubble-content { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; max-width: min(56%, 540px); min-width: 0; }
   .msg-row.mine .msg-bubble-content { align-items: flex-end; }
+  .msg-inline-wrap { display: flex; align-items: flex-end; gap: 8px; max-width: 100%; min-width: 0; }
+  .msg-row.mine .msg-inline-wrap { flex-direction: row-reverse; }
+  .msg-main-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; max-width: 100%; }
+  .msg-row.mine .msg-main-stack { align-items: flex-end; }
   .bubble { display: inline-block; width: fit-content; min-width: 50px; max-width: min(100%, 34rem); padding: 9px 12px; border-radius: 16px; font-size: 14px; line-height: 1.4; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; }
   .bubble.theirs { background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(16px); border-bottom-left-radius: 4px; }
   .bubble.mine { background: linear-gradient(135deg, rgba(83,212,255,0.96), rgba(143,136,255,0.96)); color: #fff; border-bottom-right-radius: 4px; box-shadow: 0 16px 34px rgba(83,212,255,0.2); }
@@ -166,9 +170,8 @@ $chatStateClass = $otherUser ? 'has-chat-selected' : 'show-list';
   .bubble.mine .voice-duration { color: rgba(255,255,255,0.78); }
   .bubble-meta { font-size: 11px; color: var(--text-dim); padding: 0 4px; display:flex; align-items:center; gap:8px; }
   .msg-row.mine .bubble-meta { justify-content: flex-end; text-align: right; }
-  .msg-tools { display:flex; align-items:center; gap:6px; padding: 0 2px; opacity: 0; transform: translateY(3px); transition: opacity .18s ease, transform .18s ease; }
+  .msg-tools { display:flex; align-items:center; gap:6px; padding: 0 2px; flex: 0 0 auto; opacity: 0; transform: translateY(3px); transition: opacity .18s ease, transform .18s ease; }
   .msg-row:hover .msg-tools, .msg-row:focus-within .msg-tools, .msg-row.is-tools-visible .msg-tools { opacity: 1; transform: translateY(0); }
-  .msg-row.mine .msg-tools { justify-content: flex-end; }
   .msg-action-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.06); color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease; }
   .msg-action-btn:hover { color: var(--text); border-color: rgba(143,136,255,0.24); background: rgba(255,255,255,0.1); transform: translateY(-1px); }
   .reply-context { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: fit-content; max-width: min(100%, 22rem); margin-bottom: 6px; }
@@ -679,31 +682,31 @@ $chatStateClass = $otherUser ? 'has-chat-selected' : 'show-list';
                  data-sender-name="<?= htmlspecialchars((string)($isMine ? 'You' : ($otherUser['full_name'] ?? ($msg['sender_name'] ?? ''))), ENT_QUOTES | ENT_HTML5, 'UTF-8') ?>">
               <?php if (!$isMine): ?><img decoding="async" loading="lazy" src="<?= avatarUrlC($otherUser['profile_image'], $otherUser['full_name']) ?>" class="msg-avatar" alt=""><?php endif; ?>
               <div class="msg-bubble-content">
-                <?php if (!empty($msg['reply_id'])): ?>
-                  <div class="reply-context">
-                    <button type="button" class="reply-context-link" data-reply-jump="<?= (int)$msg['reply_id'] ?>">
-                      <i class="fa-solid fa-reply"></i>
-                      <span class="reply-context-line"><?= htmlspecialchars(replyContextLabel($msg, (int)$currentUserId, $isMine), ENT_QUOTES | ENT_HTML5, 'UTF-8') ?></span>
-                    </button>
-                    <button type="button" class="reply-context-pill" data-reply-jump="<?= (int)$msg['reply_id'] ?>">
-                      <span><?= htmlspecialchars(replyPreviewSnippet($msg), ENT_QUOTES | ENT_HTML5, 'UTF-8') ?></span>
-                    </button>
+                <div class="msg-inline-wrap">
+                  <div class="msg-main-stack">
+                    <?php if (!empty($msg['reply_id'])): ?>
+                      <div class="reply-context">
+                        <button type="button" class="reply-context-link" data-reply-jump="<?= (int)$msg['reply_id'] ?>">
+                          <i class="fa-solid fa-reply"></i>
+                          <span class="reply-context-line"><?= htmlspecialchars(replyContextLabel($msg, (int)$currentUserId, $isMine), ENT_QUOTES | ENT_HTML5, 'UTF-8') ?></span>
+                        </button>
+                        <button type="button" class="reply-context-pill" data-reply-jump="<?= (int)$msg['reply_id'] ?>">
+                          <span><?= htmlspecialchars(replyPreviewSnippet($msg), ENT_QUOTES | ENT_HTML5, 'UTF-8') ?></span>
+                        </button>
+                      </div>
+                    <?php endif; ?>
+                    <div class="bubble <?= $isMine ? 'mine' : 'theirs' ?> <?= (($msg['message_type'] ?? 'text') === 'voice') ? 'voice-bubble' : '' ?>"><?php if (($msg['message_type'] ?? 'text') === 'image' && !empty($msg['media_file'])): ?>
+                        <img decoding="async" loading="lazy" class="js-lightbox-image" src="index.php?asset=chat&f=<?= urlencode($msg['media_file']) ?>" alt="Chat image">
+                      <?php elseif (($msg['message_type'] ?? 'text') === 'voice' && !empty($msg['media_file'])): ?>
+                        <audio class="voice-player" controls preload="metadata">
+                          <source src="index.php?asset=voice&f=<?= urlencode($msg['media_file']) ?>">
+                        </audio>
+                        <div class="voice-duration">Voice message • <?= htmlspecialchars(formatVoiceDuration($msg['media_duration'] ?? 0)) ?></div>
+                      <?php else: ?><?= nl2br(htmlspecialchars(chatText($msg['message']), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?><?php endif; ?></div>
                   </div>
-                <?php endif; ?>
-                <div class="bubble <?= $isMine ? 'mine' : 'theirs' ?> <?= (($msg['message_type'] ?? 'text') === 'voice') ? 'voice-bubble' : '' ?>">
-                  <?php if (($msg['message_type'] ?? 'text') === 'image' && !empty($msg['media_file'])): ?>
-                    <img decoding="async" loading="lazy" class="js-lightbox-image" src="index.php?asset=chat&f=<?= urlencode($msg['media_file']) ?>" alt="Chat image">
-                  <?php elseif (($msg['message_type'] ?? 'text') === 'voice' && !empty($msg['media_file'])): ?>
-                    <audio class="voice-player" controls preload="metadata">
-                      <source src="index.php?asset=voice&f=<?= urlencode($msg['media_file']) ?>">
-                    </audio>
-                    <div class="voice-duration">Voice message • <?= htmlspecialchars(formatVoiceDuration($msg['media_duration'] ?? 0)) ?></div>
-                  <?php else: ?>
-                    <?= nl2br(htmlspecialchars(chatText($msg['message']), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?>
-                  <?php endif; ?>
+                  <div class="msg-tools"><button type="button" class="msg-action-btn" data-reply-trigger aria-label="Reply to message"><i class="fa-solid fa-reply"></i></button></div>
                 </div>
                 <div class="bubble-meta"><?= htmlspecialchars($msg['time_formatted'] ?? timeFmt($msg['created_at'])) ?><?php if ($isMine): ?><span class="read-receipt <?= !empty($msg['is_read']) ? 'seen' : '' ?>" data-msg-id="<?= (int)$msg['id'] ?>"><i class="fa-solid <?= !empty($msg['is_read']) ? 'fa-check-double' : 'fa-check' ?>"></i><span><?= !empty($msg['is_read']) ? 'Seen' : 'Sent' ?></span></span><?php endif; ?></div>
-                <div class="msg-tools"><button type="button" class="msg-action-btn" data-reply-trigger aria-label="Reply to message"><i class="fa-solid fa-reply"></i></button></div>
               </div>
             </div>
           <?php endforeach; ?>
@@ -1375,9 +1378,13 @@ async function toggleVoiceRecording() {
     div.innerHTML = `
       ${!isMine ? avatarImg : ''}
       <div class="msg-bubble-content">
-        ${innerHtml}
+        <div class="msg-inline-wrap">
+          <div class="msg-main-stack">
+            ${innerHtml}
+          </div>
+          <div class="msg-tools"><button type="button" class="msg-action-btn" data-reply-trigger aria-label="Reply to message"><i class="fa-solid fa-reply"></i></button></div>
+        </div>
         <div class="bubble-meta">${escapeHtml(time)}${isMine ? receiptMarkup(id, isRead) : ''}</div>
-        <div class="msg-tools"><button type="button" class="msg-action-btn" data-reply-trigger aria-label="Reply to message"><i class="fa-solid fa-reply"></i></button></div>
       </div>
     `;
 

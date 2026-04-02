@@ -94,7 +94,12 @@ unset($_SESSION['errors'], $_SESSION['error'], $_SESSION['status']);
         </div>
         <div class="form-group">
           <label class="form-label">Password</label>
-          <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+          <div class="password-field">
+            <input type="password" name="password" id="loginPassword" class="form-control" placeholder="Enter your password" required>
+            <button type="button" class="password-toggle" data-toggle-password="loginPassword" aria-label="Show password" aria-pressed="false" title="Show password">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
         </div>
         <div class="auth-inline-links">
           <a href="index.php?page=forgot-password" class="auth-link">Forgot password?</a>
@@ -112,5 +117,25 @@ unset($_SESSION['errors'], $_SESSION['error'], $_SESSION['status']);
     </div>
   </div>
 </div>
+
+<script>
+(function(){
+  document.querySelectorAll('[data-toggle-password]').forEach(function(button){
+    var inputId = button.getAttribute('data-toggle-password');
+    var input = document.getElementById(inputId);
+    var icon = button.querySelector('i');
+    if (!input || !icon) return;
+
+    button.addEventListener('click', function(){
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      button.setAttribute('title', show ? 'Hide password' : 'Show password');
+      button.setAttribute('aria-pressed', show ? 'true' : 'false');
+      icon.className = 'fa-solid ' + (show ? 'fa-eye-slash' : 'fa-eye');
+    });
+  });
+})();
+</script>
 
 <?php require BASE_PATH . '/app/views/partials/footer.php'; ?>

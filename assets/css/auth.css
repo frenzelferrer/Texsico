@@ -340,6 +340,47 @@ body::after { right: -12vw; bottom: -14vw; background: rgba(143,136,255,0.24); }
   box-shadow: var(--glow);
 }
 .form-control::placeholder { color: var(--text-dim); }
+.password-field {
+  position: relative;
+}
+
+.password-field .form-control {
+  padding-right: 54px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.password-toggle:hover {
+  background: rgba(255,255,255,0.13);
+  color: var(--text);
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid rgba(143,136,255,0.72);
+  outline-offset: 2px;
+}
+
+.password-toggle i {
+  font-size: 15px;
+  pointer-events: none;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
