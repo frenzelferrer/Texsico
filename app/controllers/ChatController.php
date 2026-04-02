@@ -123,6 +123,7 @@ class ChatController {
             }
         }
 
+        extract(app_get_header_view_data($userId), EXTR_OVERWRITE);
         require __DIR__ . '/../views/chat/index.php';
     }
 

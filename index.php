@@ -159,6 +159,23 @@ switch ($page) {
         else $authCtrl->showRegister();
         break;
 
+    case 'forgot-password':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') $authCtrl->sendPasswordReset();
+        else $authCtrl->showForgotPassword();
+        break;
+
+    case 'forgot-password.send':
+        $authCtrl->sendPasswordReset();
+        break;
+
+    case 'reset-password':
+        $authCtrl->showResetPassword();
+        break;
+
+    case 'reset-password.save':
+        $authCtrl->resetPassword();
+        break;
+
     case 'logout':
         $authCtrl->logout();
         break;

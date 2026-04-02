@@ -1,8 +1,8 @@
 <?php
-    define('DB_HOST', 'sql202.infinityfree.com');
-define('DB_NAME', 'if0_41488179_texsico_db');
-define('DB_USER', 'if0_41488179');
-define('DB_PASS', '3URbHDaNbNXF');
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'texsico_db');
+define('DB_USER', 'root');
+define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
 $credentialsFile = __DIR__ . '/database.credentials.php';
 if (is_file($credentialsFile)) {
@@ -28,12 +28,14 @@ if (!defined('DB_CHARSET')) {
     define('DB_CHARSET', getenv('DB_CHARSET') ?: ($_SERVER['DB_CHARSET'] ?? 'utf8mb4'));
 }
 
-class Database {
+class Database
+{
     private static ?self $instance = null;
     private PDO $pdo;
     private string $driver;
 
-    private function __construct() {
+    private function __construct()
+    {
         $dsn = trim((string) DB_DSN);
         if ($dsn === '') {
             if (trim((string) DB_HOST) === '' || trim((string) DB_NAME) === '' || trim((string) DB_USER) === '') {
@@ -63,18 +65,21 @@ class Database {
         }
     }
 
-    public static function getInstance(): self {
+    public static function getInstance(): self
+    {
         if (self::$instance === null) {
             self::$instance = new self();
         }
         return self::$instance;
     }
 
-    public function getConnection(): PDO {
+    public function getConnection(): PDO
+    {
         return $this->pdo;
     }
 
-    public function getDriver(): string {
+    public function getDriver(): string
+    {
         return $this->driver;
     }
 }

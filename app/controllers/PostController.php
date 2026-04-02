@@ -68,6 +68,7 @@ class PostController {
         $discoverUsers = array_slice($discoverUsers, 0, 6);
         $unreadMsgCount = $this->messageModel->getUnreadCount($userId);
         $friendCount = $this->friendshipModel->getFriendCount($userId);
+        extract(app_get_header_view_data($userId), EXTR_OVERWRITE);
 
         require __DIR__ . '/../views/feed/index.php';
     }

@@ -1,7 +1,8 @@
 <?php
 $errors = $_SESSION['errors'] ?? [];
-$error  = $_SESSION['error']  ?? null;
-unset($_SESSION['errors'], $_SESSION['error']);
+$error = $_SESSION['error'] ?? null;
+$status = $_SESSION['status'] ?? null;
+unset($_SESSION['errors'], $_SESSION['error'], $_SESSION['status']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -29,7 +30,7 @@ unset($_SESSION['errors'], $_SESSION['error']);
 <div class="auth-page">
   <div class="auth-left">
     <div class="auth-left-content">
-      <div class="auth-logo-big"><img src="favicon-32x32.png" alt="Texsico logo" class="auth-logo-icon"><strong class="auth-logo-word">Tex<span>s</span>ico</strong></div>
+      <div class="auth-logo-big"><img src="apple-touch-icon.png" alt="Texsico logo" class="auth-logo-icon"><strong class="auth-logo-word">Tex<span>s</span>ico</strong></div>
       <p class="auth-tagline">A calm, modern space for posts, conversations, and quick updates.</p>
       <div class="auth-features">
         <div class="auth-feature">
@@ -50,26 +51,39 @@ unset($_SESSION['errors'], $_SESSION['error']);
   <div class="auth-right">
     <div class="auth-form-box">
       <div class="auth-mobile-shell">
-  <div class="auth-mobile-brand">
-    <div class="auth-mobile-logo"><img src="favicon-32x32.png" alt="Texsico logo" class="auth-mobile-logo-icon"><strong class="auth-mobile-word">Tex<span>s</span>ico</strong></div>
-    <div class="auth-mobile-note"><i class="fa-solid fa-comments"></i> Built for smooth conversations</div>
-  </div>
+        <div class="auth-mobile-brand">
+          <div class="auth-mobile-logo"><img src="apple-touch-icon.png" alt="Texsico logo" class="auth-mobile-logo-icon"><strong class="auth-mobile-word">Tex<span>s</span>ico</strong></div>
+          <div class="auth-mobile-note"><i class="fa-solid fa-comments"></i> Built for smooth conversations</div>
+        </div>
 
-  <div class="auth-mobile-marquee" aria-hidden="true">
-    <div class="auth-mobile-pill"><i class="fa-solid fa-sliders"></i><span><strong>Clean feed</strong><br>focus on what matters</span></div>
-    <div class="auth-mobile-pill"><i class="fa-solid fa-bookmark"></i><span><strong>Saved drafts</strong><br>pick up where you left off</span></div>
-    <div class="auth-mobile-pill"><i class="fa-solid fa-magnifying-glass"></i><span><strong>Smart search</strong><br>scan chats in seconds</span></div>
-  </div>
-</div>
+        <div class="auth-mobile-marquee" aria-hidden="true">
+          <div class="auth-mobile-pill"><i class="fa-solid fa-sliders"></i><span><strong>Clean feed</strong><br>focus on what matters</span></div>
+          <div class="auth-mobile-pill"><i class="fa-solid fa-bookmark"></i><span><strong>Saved drafts</strong><br>pick up where you left off</span></div>
+          <div class="auth-mobile-pill"><i class="fa-solid fa-magnifying-glass"></i><span><strong>Smart search</strong><br>scan chats in seconds</span></div>
+        </div>
+      </div>
 
-<div class="auth-form-head">
-  <div class="auth-eyebrow">Welcome back</div>
-  <h1 class="auth-form-title">Welcome back to Texsico</h1>
-  <p class="auth-form-subtitle">Sign in to continue your feed, messages, and saved drafts.</p>
-</div>
+      <div class="auth-form-head">
+        <div class="auth-eyebrow">Welcome back</div>
+        <h1 class="auth-form-title">Welcome back to Texsico</h1>
+        <p class="auth-form-subtitle">Sign in to continue your feed, messages, and saved drafts.</p>
+      </div>
+
+      <?php if ($status): ?>
+        <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <?= htmlspecialchars($status) ?></div>
+      <?php endif; ?>
 
       <?php if ($error): ?>
         <div class="alert alert-error"><i class="fa-solid fa-triangle-exclamation"></i> <?= htmlspecialchars($error) ?></div>
+      <?php endif; ?>
+
+      <?php if (!empty($errors)): ?>
+        <div class="alert alert-error">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <?php foreach ($errors as $e): ?>
+            <div><?= htmlspecialchars($e) ?></div>
+          <?php endforeach; ?>
+        </div>
       <?php endif; ?>
 
       <form action="index.php?page=login" method="POST">
@@ -81,6 +95,9 @@ unset($_SESSION['errors'], $_SESSION['error']);
         <div class="form-group">
           <label class="form-label">Password</label>
           <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+        </div>
+        <div class="auth-inline-links">
+          <a href="index.php?page=forgot-password" class="auth-link">Forgot password?</a>
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:8px; padding:13px;">
           Sign In <i class="fa-solid fa-arrow-right"></i>

@@ -26,6 +26,18 @@ class UserModel {
         return $stmt->fetch() ?: null;
     }
 
+    public function updatePasswordById(int $id, string $password): bool {
+        $hashed = password_hash($password, PASSWORD_BCRYPT, ['cost' => 8]);
+        $stmt = $this->db->prepare("UPDATE users SET password = ? WHERE id = ?");
+        return $stmt->execute([$hashed, $id]);
+    }
+
+    public function findBasicById(int $id): ?array {
+        $stmt = $this->db->prepare("SELECT id, username, email, full_name FROM users WHERE id = ? LIMIT 1");
+        $stmt->execute([$id]);
+        return $stmt->fetch() ?: null;
+    }
+
     public function create(string $username, string $email, string $password, string $fullName): int {
         $hashed = password_hash($password, PASSWORD_BCRYPT, ['cost' => 8]);
         $stmt = $this->db->prepare(

@@ -184,6 +184,33 @@ if (!function_exists('app_rate_limit')) {
     }
 }
 
+
+if (!function_exists('app_get_header_view_data')) {
+    function app_get_header_view_data(int $currentUserId): array {
+        if ($currentUserId <= 0) {
+            return [
+                'headerNotifications' => [],
+                'headerNotifUnreadCount' => 0,
+                'headerPendingRequests' => [],
+                'headerPendingCount' => 0,
+            ];
+        }
+
+        require_once BASE_PATH . '/app/models/NotificationModel.php';
+        require_once BASE_PATH . '/app/models/FriendshipModel.php';
+
+        $notificationModel = new NotificationModel();
+        $friendshipModel = new FriendshipModel();
+
+        return [
+            'headerNotifications' => $notificationModel->getRecentForUser($currentUserId, 8),
+            'headerNotifUnreadCount' => (int)$notificationModel->getUnreadCount($currentUserId),
+            'headerPendingRequests' => $friendshipModel->getPendingIncomingRequests($currentUserId, 6),
+            'headerPendingCount' => (int)$friendshipModel->getPendingIncomingCount($currentUserId),
+        ];
+    }
+}
+
 if (!function_exists('uploaded_file_mime')) {
     function uploaded_file_mime(string $path): ?string {
         if (!is_file($path)) {

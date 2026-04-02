@@ -5,26 +5,25 @@ $currentFullName   = $_SESSION['full_name'] ?? '';
 $currentAvatar     = $_SESSION['profile_image'] ?? 'default.png';
 
 $unreadMsgCount = isset($unreadMsgCount) ? (int)$unreadMsgCount : 0;
-$headerNotifications = [];
-$headerNotifUnreadCount = 0;
-$headerPendingRequests = [];
-$headerPendingCount = 0;
-
-if ($currentUserId) {
-    require_once BASE_PATH . '/app/models/NotificationModel.php';
-    require_once BASE_PATH . '/app/models/FriendshipModel.php';
-    $headerNotificationModel = new NotificationModel();
-    $headerFriendshipModel = new FriendshipModel();
-    $headerNotifications = $headerNotificationModel->getRecentForUser((int)$currentUserId, 8);
-    $headerNotifUnreadCount = $headerNotificationModel->getUnreadCount((int)$currentUserId);
-    $headerPendingRequests = $headerFriendshipModel->getPendingIncomingRequests((int)$currentUserId, 6);
-    $headerPendingCount = $headerFriendshipModel->getPendingIncomingCount((int)$currentUserId);
-}
+$headerNotifications = isset($headerNotifications) && is_array($headerNotifications) ? $headerNotifications : [];
+$headerNotifUnreadCount = isset($headerNotifUnreadCount) ? (int)$headerNotifUnreadCount : 0;
+$headerPendingRequests = isset($headerPendingRequests) && is_array($headerPendingRequests) ? $headerPendingRequests : [];
+$headerPendingCount = isset($headerPendingCount) ? (int)$headerPendingCount : 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+
+<meta property="og:title" content="Texsico - Social Networking Platform">
+<meta property="og:description" content="Connect, share, and chat with friends on Texsico.">
+<meta property="og:image" content="https://texsico.xyz/assets/images/preview.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://texsico.xyz<?= htmlspecialchars($_SERVER['REQUEST_URI'], ENT_QUOTES, 'UTF-8') ?>">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Texsico">
     <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
@@ -36,7 +35,7 @@ if ($currentUserId) {
 <link rel="manifest" href="/site.webmanifest">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Texsico — Mini Social Messaging</title>
+  <title>Texsico — Minimal Social Messaging</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

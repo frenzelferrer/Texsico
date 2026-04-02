@@ -29,7 +29,7 @@ unset($_SESSION['errors'], $_SESSION['old']);
 <div class="auth-page">
   <div class="auth-left">
     <div class="auth-left-content">
-      <div class="auth-logo-big"><img src="favicon-32x32.png" alt="Texsico logo" class="auth-logo-icon"><strong class="auth-logo-word">Tex<span>s</span>ico</strong></div>
+      <div class="auth-logo-big"><img src="apple-touch-icon.png" alt="Texsico logo" class="auth-logo-icon"><strong class="auth-logo-word">Tex<span>s</span>ico</strong></div>
       <p class="auth-tagline">Create your space and start posting, chatting, and sharing with clarity.</p>
       <div class="auth-features">
         <div class="auth-feature">
@@ -51,7 +51,7 @@ unset($_SESSION['errors'], $_SESSION['old']);
     <div class="auth-form-box">
      <div class="auth-mobile-shell">
   <div class="auth-mobile-brand">
-    <div class="auth-mobile-logo"><img src="favicon-32x32.png" alt="Texsico logo" class="auth-mobile-logo-icon"><strong class="auth-mobile-word">Tex<span>s</span>ico</strong></div>
+    <div class="auth-mobile-logo"><img src="apple-touch-icon.png" alt="Texsico logo" class="auth-mobile-logo-icon"><strong class="auth-mobile-word">Tex<span>s</span>ico</strong></div>
     <div class="auth-mobile-note"><i class="fa-solid fa-sparkles"></i> Create your social space</div>
   </div>
 
@@ -62,7 +62,10 @@ unset($_SESSION['errors'], $_SESSION['old']);
   </div>
 </div>
 
-
+<div class="auth-top-link">
+  <span>Already a member?</span>
+  <a href="index.php?page=login" class="auth-link">Sign in</a>
+</div>
 
 <div class="auth-form-head">
   <div class="auth-eyebrow">Join Texsico</div>

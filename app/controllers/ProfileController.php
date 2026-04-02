@@ -44,6 +44,7 @@ class ProfileController {
         $comments = $this->commentModel->getByPostIds(array_column($posts, 'id'));
         $unreadMsgCount = $this->messageModel->getUnreadCount($currentUserId);
         $friendCount = $this->friendshipModel->getFriendCount($profileId);
+        extract(app_get_header_view_data($currentUserId), EXTR_OVERWRITE);
 
         require __DIR__ . '/../views/profile/index.php';
     }
@@ -134,6 +135,7 @@ class ProfileController {
         }
         unset($user);
         $unreadMsgCount = $this->messageModel->getUnreadCount($userId);
+        extract(app_get_header_view_data($userId), EXTR_OVERWRITE);
         require __DIR__ . '/../views/profile/search.php';
     }
 }

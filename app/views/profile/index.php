@@ -41,7 +41,7 @@ $coverImage = coverUrlP($profileUser['cover_photo'] ?? null);
 <div class="app-layout">
   <aside class="sidebar">
     <a href="index.php?page=feed" class="sidebar-brand">
-      <img src="favicon-32x32.png" alt="Texsico logo" class="sidebar-brand-icon">
+      <img src="apple-touch-icon.png" alt="Texsico logo" class="sidebar-brand-icon">
       <span class="sidebar-brand-text">Texsico</span>
     </a>
     <a href="index.php?page=profile" class="sidebar-profile">
@@ -150,8 +150,8 @@ $coverImage = coverUrlP($profileUser['cover_photo'] ?? null);
       <?php if (!$canViewPosts): ?>
         <div class="card locked-profile-card">
           <i class="fa-solid fa-lock"></i>
-          <p><strong>Posts are private until you become friends.</strong></p>
-          <span>Send a request first. After it is accepted, you can view posts and start chatting here.</span>
+          <p><strong>Posts are private in their profile until you become friends.</strong></p>
+          <span>Send a request first. After it is accepted, you can view posts inside their profile and start chatting here.</span>
         </div>
       <?php elseif (empty($posts)): ?>
         <div style="text-align:center; padding:60px; color:var(--text-muted);">

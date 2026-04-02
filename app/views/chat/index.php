@@ -520,6 +520,25 @@ $chatStateClass = $otherUser ? 'has-chat-selected' : 'show-list';
     .chat-empty-title { font-size:18px; }
     .chat-empty-copy { font-size:14px; max-width:260px; }
     .chat-start-avatar { width:56px; height:56px; }
+
+    .page-chat.chat-mobile-keyboard-open .mobile-nav {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px)));
+    }
+    .page-chat.chat-mobile-keyboard-open .chat-messages-area {
+      padding-bottom: 84px;
+    }
+    .page-chat.chat-mobile-keyboard-open .chat-empty-state {
+      padding-bottom: 84px;
+    }
+    .page-chat.chat-mobile-keyboard-open .chat-attachment-state {
+      bottom: max(6px, env(safe-area-inset-bottom, 0px));
+    }
+    .page-chat.chat-mobile-keyboard-open .chat-input-area {
+      bottom: max(6px, env(safe-area-inset-bottom, 0px));
+      margin-bottom: 6px;
+    }
   }
 
   @media (max-width: 480px) {
@@ -706,8 +725,6 @@ $chatStateClass = $otherUser ? 'has-chat-selected' : 'show-list';
         <div class="chat-composer-tools">
           <img decoding="async" loading="lazy" src="<?= avatarUrlC($currentAvatar, $currentFullName) ?>" class="msg-avatar composer-avatar" alt="You">
           <label class="chat-media-btn" title="Send image"><i class="fa-regular fa-image"></i><input type="file" id="chatImageInput" accept="image/*" hidden></label>
-          <button type="button" id="recordVoiceBtn" class="chat-record-btn" title="Record voice message"><i class="fa-solid fa-microphone"></i></button>
-          <button type="button" id="emojiToggleBtn" class="chat-emoji-btn" title="Open emoji picker"><i class="fa-regular fa-face-smile"></i></button>
         </div>
         <div class="chat-composer-main">
           <div class="chat-composer-stack">
@@ -875,6 +892,8 @@ $chatStateClass = $otherUser ? 'has-chat-selected' : 'show-list';
   const chatInfoPanel = document.getElementById('chatInfoPanel');
   const chatInfoClose = document.getElementById('chatInfoClose');
   const chatInfoOverlay = document.getElementById('chatInfoOverlay');
+  let mobileViewportBaseline = 0;
+  let keyboardSyncTimer = null;
 
   function openChatInfo() {
     if (!chatInfoPanel || !chatInfoOverlay) return;
@@ -903,6 +922,45 @@ $chatStateClass = $otherUser ? 'has-chat-selected' : 'show-list';
     if (typeof autoGrowTextarea === 'function' && msgInput) {
       autoGrowTextarea(msgInput);
     }
+  }
+
+  function isChatMobileLayout() {
+    return window.matchMedia('(max-width: 768px)').matches;
+  }
+
+  function getChatViewportHeight() {
+    return window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  }
+
+  function detectMobileKeyboardOpen() {
+    if (!msgInput || !isChatMobileLayout()) return false;
+    const currentViewportHeight = getChatViewportHeight();
+    const activeElement = document.activeElement;
+    const inputFocused = activeElement === msgInput;
+
+    if (!inputFocused) {
+      if (!mobileViewportBaseline || currentViewportHeight > mobileViewportBaseline) {
+        mobileViewportBaseline = currentViewportHeight;
+      }
+      return false;
+    }
+
+    if (!mobileViewportBaseline || currentViewportHeight > mobileViewportBaseline) {
+      mobileViewportBaseline = currentViewportHeight;
+    }
+
+    return (mobileViewportBaseline - currentViewportHeight) > 110;
+  }
+
+  function syncMobileKeyboardState() {
+    clearTimeout(keyboardSyncTimer);
+    keyboardSyncTimer = window.setTimeout(() => {
+      const isOpen = detectMobileKeyboardOpen();
+      document.body.classList.toggle('chat-mobile-keyboard-open', isOpen);
+      if (isOpen) {
+        requestAnimationFrame(scrollBottom);
+      }
+    }, 24);
   }
 
   function syncComposerState() {
@@ -1179,9 +1237,17 @@ async function toggleVoiceRecording() {
   }
 
   if (msgInput) {
-    msgInput.addEventListener('input', () => { syncComposerState(); persistChatDraft(); });
-    msgInput.addEventListener('focus', syncComposerState);
-    msgInput.addEventListener('blur', () => setTimeout(syncComposerState, 30));
+    msgInput.addEventListener('input', () => { syncComposerState(); persistChatDraft(); syncMobileKeyboardState(); });
+    msgInput.addEventListener('focus', () => {
+      syncComposerState();
+      syncMobileKeyboardState();
+      window.setTimeout(syncMobileKeyboardState, 120);
+      window.setTimeout(scrollBottom, 140);
+    });
+    msgInput.addEventListener('blur', () => {
+      window.setTimeout(syncComposerState, 30);
+      window.setTimeout(syncMobileKeyboardState, 120);
+    });
     msgInput.addEventListener('keydown', (event) => {
       const desktopSend = window.innerWidth > 768 || event.ctrlKey || event.metaKey;
       if (event.key === 'Enter' && !event.shiftKey && desktopSend) {
@@ -1191,14 +1257,21 @@ async function toggleVoiceRecording() {
     });
   }
 
-  window.addEventListener('resize', syncComposerState, { passive: true });
+  window.addEventListener('resize', () => { syncComposerState(); syncMobileKeyboardState(); }, { passive: true });
   window.addEventListener('pageshow', () => {
     emojiPicker?.classList.remove('open');
     syncComposerState();
+    syncMobileKeyboardState();
   });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncMobileKeyboardState, { passive: true });
+    window.visualViewport.addEventListener('scroll', syncMobileKeyboardState, { passive: true });
+  }
   restoreChatDraft();
   chatSearchInput?.addEventListener('input', () => filterChatMessages(chatSearchInput.value));
+  mobileViewportBaseline = getChatViewportHeight();
   syncComposerState();
+  syncMobileKeyboardState();
 
   function receiptMarkup(id, isRead) {
     return `<span class="read-receipt ${isRead ? 'seen' : ''}" data-msg-id="${id}"><i class="fa-solid ${isRead ? 'fa-check-double' : 'fa-check'}"></i><span>${isRead ? 'Seen' : 'Sent'}</span></span>`;

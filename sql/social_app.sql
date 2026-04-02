@@ -1,10 +1,7 @@
--- ============================================
--- Texsico - Minimal Social Messaging WebApp
--- Database Schema
--- ============================================
 
-CREATE DATABASE IF NOT EXISTS if0_41488179_texsico_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE if0_41488179_texsico_db;
+
+CREATE DATABASE IF NOT EXISTS texsico_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE texsico_db;
 
 -- Users table
 CREATE TABLE users (
@@ -100,6 +97,24 @@ CREATE TABLE notifications (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+
+-- Password reset requests table
+CREATE TABLE password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME DEFAULT NULL,
+    requested_ip VARCHAR(64) DEFAULT NULL,
+    user_agent VARCHAR(255) DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_reset_token_hash (token_hash),
+    INDEX idx_password_resets_user_active (user_id, used_at, expires_at),
+    INDEX idx_password_resets_email_created (email, created_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- Sample Users (passwords: "password123" hashed)

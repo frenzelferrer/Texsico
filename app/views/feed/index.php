@@ -38,7 +38,7 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
 <div class="app-layout">
   <aside class="sidebar">
     <a href="index.php?page=feed" class="sidebar-brand">
-      <img src="favicon-32x32.png" alt="Texsico logo" class="sidebar-brand-icon">
+      <img src="apple-touch-icon.png" alt="Texsico logo" class="sidebar-brand-icon">
       <span class="sidebar-brand-text">Texsico</span>
     </a>
     <a href="index.php?page=profile" class="sidebar-profile">
@@ -81,16 +81,7 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
   </aside>
 
   <main class="main-content page-shell">
-    <section class="activity-strip card">
-      <div class="activity-strip-copy">
-        <strong>Friends-only feed</strong>
-        <span>Only you and accepted friends can view posts and chat now.</span>
-      </div>
-      <div class="activity-strip-meta">
-        <span><i class="fa-solid fa-user-group"></i> <?= (int)($friendCount ?? 0) ?> friends</span>
-        <a href="index.php?page=search">Manage people</a>
-      </div>
-    </section>
+   
     <?php if (!empty($search)): ?>
       <div class="search-card" style="margin-bottom:16px; display:flex; align-items:center; gap:10px;">
         <span style="color:var(--text-muted); font-size:14px;">
@@ -102,7 +93,7 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
     <?php endif; ?>
 
     <section class="card" style="padding:18px 20px;">
-      <div class="feed-kicker"><i class="fa-solid fa-signal"></i> Online now</div>
+      <div class="feed-kicker"><i class="fa-solid fa-signal"></i> Friends</div>
       <div style="display:flex; gap:14px; overflow:auto; padding-top:10px;">
         <a href="index.php?page=profile" style="text-decoration:none; color:inherit; text-align:center; min-width:72px;">
           <div style="position:relative; width:64px; margin:0 auto 8px;">
@@ -243,11 +234,7 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
             <div class="post-content" id="post-content-<?= $post['id'] ?>">
               <?= nl2br(htmlspecialchars($post['content'])) ?>
             </div>
-            <div class="post-meta-badges">
-              <?php if ($post['image']): ?><span class="post-meta-badge"><i class="fa-regular fa-image"></i> Photo</span><?php endif; ?>
-              <?php if ($isDiscussion): ?><span class="post-meta-badge"><i class="fa-regular fa-comment-dots"></i> Discussion</span><?php endif; ?>
-              <?php if ($postLen <= 140): ?><span class="post-meta-badge"><i class="fa-solid fa-bolt"></i> Quick read</span><?php endif; ?>
-            </div>
+          
             <?php if ($post['image']): ?>
               <img decoding="async" loading="lazy" src="index.php?asset=post&f=<?= urlencode($post['image']) ?>" alt="Post image" class="post-image js-lightbox-image">
             <?php endif; ?>
@@ -322,11 +309,12 @@ $firstName = htmlspecialchars(explode(' ', trim($currentFullName))[0] ?? ($curre
         <?= friend_action_button((int)$u['id'], $u['friendship_state'] ?? 'none', true) ?>
       </div>
     <?php endforeach; ?>
-    <div class="widget-title" style="margin-top:20px;"><i class="fa-solid fa-shield-heart"></i> Private by design</div>
     <div class="side-info-card">
       <div class="side-info-list">
-        <div class="side-info-item"><i class="fa-solid fa-lock" style="color:var(--accent);"></i><span>Posts are visible only between friends.</span></div>
-        <div class="side-info-item"><i class="fa-solid fa-comments" style="color:var(--accent4);"></i><span>Chat opens after both users become friends.</span></div>
+<div class="side-info-item">
+  <i class="fa-solid fa-earth-asia" style="color:var(--accent);"></i>
+  <span>Posts are visible to all users.</span>
+</div>        <div class="side-info-item"><i class="fa-solid fa-comments" style="color:var(--accent4);"></i><span>Chat opens after both users become friends.</span></div>
         <div class="side-info-item"><i class="fa-regular fa-bell" style="color:var(--accent2);"></i><span>Use the bell button on top for likes, comments, and requests.</span></div>
       </div>
     </div>

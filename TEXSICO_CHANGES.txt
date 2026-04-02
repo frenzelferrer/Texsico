@@ -101,3 +101,10 @@ March 31 follow-up
 - kept message bubbles smaller and cleaner instead of embedding a large reply card
 
 - Chat reply composer made compact so it stays lower and blocks less of the conversation on mobile and desktop.
+
+[2026-03-31] Password reset flow added
+- Added forgot password page and reset password page.
+- Added password_resets table schema and password_reset_patch.sql.
+- Added PasswordResetModel and MailHelper.
+- Added reset email logging / mail() transport support.
+- Added login page forgot-password link.

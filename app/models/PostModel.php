@@ -43,9 +43,9 @@ class PostModel {
     }
 
     public function getAllPosts(int $userId): array {
-        $sql = $this->baseSelect() . ' WHERE ' . $this->visibilityCondition('p.user_id') . ' ORDER BY p.created_at DESC, p.id DESC';
+        $sql = $this->baseSelect() . ' ORDER BY p.created_at DESC, p.id DESC';
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(array_merge([$userId], $this->visibilityParams($userId)));
+        $stmt->execute([$userId]);
         return $stmt->fetchAll();
     }
 
@@ -65,10 +65,8 @@ class PostModel {
     }
 
     public function canUserAccessPost(int $postId, int $viewerId): bool {
-        $stmt = $this->db->prepare(
-            'SELECT 1 FROM posts p WHERE p.id = ? AND ' . $this->visibilityCondition('p.user_id') . ' LIMIT 1'
-        );
-        $stmt->execute(array_merge([$postId], $this->visibilityParams($viewerId)));
+        $stmt = $this->db->prepare('SELECT 1 FROM posts WHERE id = ? LIMIT 1');
+        $stmt->execute([$postId]);
         return (bool)$stmt->fetchColumn();
     }
 
@@ -105,9 +103,9 @@ class PostModel {
 
     public function search(string $query, int $userId): array {
         $like = '%' . $query . '%';
-        $sql = $this->baseSelect() . ' WHERE ' . $this->visibilityCondition('p.user_id') . ' AND p.content LIKE ? ORDER BY p.created_at DESC, p.id DESC';
+        $sql = $this->baseSelect() . ' WHERE p.content LIKE ? ORDER BY p.created_at DESC, p.id DESC';
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(array_merge([$userId], $this->visibilityParams($userId), [$like]));
+        $stmt->execute([$userId, $like]);
         return $stmt->fetchAll();
     }
 }
