@@ -26,19 +26,22 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 if (!function_exists('csrf_token')) {
-    function csrf_token(): string {
+    function csrf_token(): string
+    {
         return $_SESSION['csrf_token'] ?? '';
     }
 }
 
 if (!function_exists('csrf_input')) {
-    function csrf_input(): string {
+    function csrf_input(): string
+    {
         return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') . '">';
     }
 }
 
 if (!function_exists('verify_csrf_request')) {
-    function verify_csrf_request(): void {
+    function verify_csrf_request(): void
+    {
         ensure_same_origin_request();
         $token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         if (!$token || !hash_equals(csrf_token(), $token)) {
@@ -50,7 +53,8 @@ if (!function_exists('verify_csrf_request')) {
 
 
 if (!function_exists('default_avatar_data_uri')) {
-    function default_avatar_data_uri(string $name, int $size = 128): string {
+    function default_avatar_data_uri(string $name, int $size = 128): string
+    {
         $name = trim($name) !== '' ? trim($name) : 'Texsico User';
         $parts = preg_split('/\s+/', $name) ?: [];
         $initials = '';
@@ -83,7 +87,8 @@ if (!function_exists('default_avatar_data_uri')) {
 }
 
 if (!function_exists('asset_upload_path')) {
-    function asset_upload_path(string $type, string $filename): ?string {
+    function asset_upload_path(string $type, string $filename): ?string
+    {
         $filename = basename($filename);
         $base = match ($type) {
             'avatar' => __DIR__ . '/assets/uploads/avatars/',
